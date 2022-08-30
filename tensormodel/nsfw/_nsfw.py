@@ -3,7 +3,6 @@ from typing import Optional, Tuple
 import cv2
 import numpy as np
 import linora as la
-import tensordata as td
 import tensorflow as tf
 from tensorflow.keras import layers
 
@@ -105,9 +104,9 @@ def preprocess_image(image):
 
 class NSFW_Model():
     def __init__(self, weights_path, gpu_strategy=None):
-        if not td.gfile.exists(weights_path):
+        if not la.gfile.exists(weights_path):
             url = 'https://github.com/bhky/opennsfw2/releases/download/v0.1.0/open_nsfw_weights.h5'
-            td.utils.request.files(url, weights_path)
+            la.data.get_file(url, weights_path)
         if gpu_strategy is not None:
             gpu_strategy()
         self.model = make_open_nsfw_model()
