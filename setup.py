@@ -10,7 +10,7 @@ setup(name='tensormodel',
       install_requires=[
           'linora>=1.4.0', 
           'opencv-python>=4.5.0',
-          'tensorflow>=2.8.0'
+          'tensorflow>=2.7.0'
       ],
       description='Deep learning application collection.',
       long_description=readme(),
