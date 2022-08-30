@@ -97,7 +97,7 @@ def preprocess_image(image):
     if isinstance(image, str):
         image = la.image.read_image(image)
     image = la.image.color_convert(image, la.image.ColorMode.RGB)
-    image = la.image.resize(image, (224, 224), la.image.ResizeMethod.BILINEAR)
+    image = la.image.resize(image, (224, 224), la.image.ResizeMode.BILINEAR)
     image = la.image.image_to_array(image)
     image = image[:, :, ::-1]-np.array([104., 117., 123.], dtype=np.float32)
     return image
