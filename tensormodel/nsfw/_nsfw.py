@@ -117,7 +117,7 @@ class NSFW_Model():
             image_file = [image_file]
         images = np.array([preprocess_image(image_path) for image_path in image_file])
         predictions = self.model.predict(images, batch_size=len(images) if batch_size is None else batch_size)
-        return [round(i, 3) for i in predictions[:,1].tolist()]
+        return [round(i, 4) for i in predictions[:,1].tolist()]
 
     def predict_video(self, video_path, frame_interval=8, prob_threshold=0.8, output_video_path=None):
         """Make prediction for each video frame."""
@@ -147,7 +147,7 @@ class NSFW_Model():
                 nsfw_probs.extend([nsfw_prob]*frame_interval)
 
             if video_writer is not None:
-                result_text = f"NSFW probability: {nsfw_prob:.3f}"
+                result_text = f"NSFW prob: {nsfw_prob:.3f}"
                 colour = (255, 0, 0) if nsfw_prob >= prob_threshold else (0, 0, 255)
                 cv2.putText(frame, result_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, colour, 2, cv2.LINE_AA)
                 video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
