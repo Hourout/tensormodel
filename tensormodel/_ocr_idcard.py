@@ -308,8 +308,26 @@ class OCRIDCard():
                     if sum([1 for j in i[1][0][-21:] if j in '0123456789.-'])==21:
                         self._info['user_validity_period'] = i[1][0][-21:]
                         break
-                    elif sum([1 for j in i[1][0][-13:] if j in '0123456789.-长期'])==13 and '长期' in i[1][0]:
-                        self._info['user_validity_period'] = i[1][0][-13:]
-                        break
-
-
+                    elif i[1][0].endswith('长期'):
+                        if sum([1 for j in i[1][0][-13:] if j in '0123456789.-长期'])==13:
+                            self._info['user_validity_period'] = i[1][0][-13:]
+                            break
+                        else:
+                            temp = i[1][0].replace('.', '').replace('-','').replace(':','')
+                            for j in temp:
+                                if j in self._char_number:
+                                    break
+                                else:
+                                    temp = temp[temp.find(j)+1:]
+                            if len(temp)==10:
+                                self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-长期'
+                    else:
+                        temp = i[1][0].replace('.', '').replace('-','').replace(':','')
+                        for j in temp:
+                            if j in self._char_number:
+                                break
+                            else:
+                                temp = temp[temp.find(j)+1:]
+                        if len(temp)==16:
+                            self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[12:14]}.{temp[14:16]}'
+                        
