@@ -6,7 +6,7 @@ def readme():
         return f.read()
 
 setup(name='tensormodel',
-      version='0.1.0',
+      version='0.1.1',
       install_requires=[
           'linora>=1.4.0', 
           'opencv-python>=4.5.0',
