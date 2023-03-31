@@ -14,7 +14,7 @@ class OCRIDCard():
         self._char_name = [i+j for i in ['姓', '娃'] for j in ['名', '容', '吉']]
         self._char_nation = ['民族', '民旅', '民康', '民旗', '民路']
         self._char_address = ['住址', '佳址', '主址']
-        self._char_organization = ['签发机关', '鑫发机关', '金设机关']
+        self._char_organization = ['签发机关', '鑫发机关', '金设机关', '签发物关']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
     def predict(self, image, axis=False):
@@ -293,8 +293,9 @@ class OCRIDCard():
                 self._info['user_type'] = '居民身份证'
             elif '居住证' in i[1][0]:
                 self._info['user_type'] = i[1][0]
+        
         for i in self._result_down[0]:
-            if '公安局' in i[1][0] or '公安分局' in i[1][0]:
+            if '公安局' in i[1][0] or '分局' in i[1][0]:
                 self._info['user_organization'] = i[1][0]
                 for char in self._char_organization:
                     if char in i[1][0]:
@@ -302,6 +303,9 @@ class OCRIDCard():
                             self._info['user_organization'] = (i[1][0][i[1][0].find(char)+len(char):]).strip()
                             break
                 break
+        for i in ['公委局', '公农局']:
+            self._info['user_organization'] = self._info['user_organization'].replace(i, '公安局')
+        
         for i in self._result_down[0]:
             if sum([1 for char in ['长期', '.', '-', '一'] if char in i[1][0]])>1:
                 if sum([1 for char in self._char_number if char in i[1][0]])>1:
@@ -325,7 +329,7 @@ class OCRIDCard():
                                 self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-长期'
                     else:
                         temp = i[1][0]
-                        for j in ['.一:-']:
+                        for j in '.一:-':
                             temp = temp.replace(j, '')
                         for j in temp:
                             if j in self._char_number:
@@ -335,7 +339,6 @@ class OCRIDCard():
                         if len(temp)==16:
                             self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[12:14]}.{temp[14:16]}'
                         
-                        
-                        
-                        
-                        
+
+
+
