@@ -313,7 +313,9 @@ class OCRIDCard():
                             self._info['user_validity_period'] = i[1][0][-13:]
                             break
                         else:
-                            temp = i[1][0].replace('.', '').replace('-','').replace(':','')
+                            temp = i[1][0]
+                            for j in ['.一:-']:
+                                temp = temp.replace(j, '')
                             for j in temp:
                                 if j in self._char_number:
                                     break
@@ -322,7 +324,9 @@ class OCRIDCard():
                             if len(temp)==10:
                                 self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-长期'
                     else:
-                        temp = i[1][0].replace('.', '').replace('-','').replace(':','')
+                        temp = i[1][0]
+                        for j in ['.一:-']:
+                            temp = temp.replace(j, '')
                         for j in temp:
                             if j in self._char_number:
                                 break
@@ -330,4 +334,6 @@ class OCRIDCard():
                                 temp = temp[temp.find(j)+1:]
                         if len(temp)==16:
                             self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[12:14]}.{temp[14:16]}'
+                        
+                        
                         
