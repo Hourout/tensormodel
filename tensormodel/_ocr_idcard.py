@@ -11,9 +11,9 @@ class OCRIDCard():
     def __init__(self):
         self.ocr = paddleocr.PaddleOCR(show_log=False)
         self._error = 'ok'
-        self._char_name = [i+j for i in ['姓', '娃'] for j in ['名', '容', '吉']]
-        self._char_nation = ['民族', '民旅', '民康', '民旗', '民路']
-        self._char_address = ['住址', '佳址', '主址']
+        self._char_name = [i+j for i in ['姓', '娃', '妇', '性'] for j in ['名', '容', '吉']]
+        self._char_nation = ['民族', '民旅', '民康', '民旗', '民路', '昆旗']
+        self._char_address = ['住址', '佳址', '主址', '住 址']
         self._char_organization = ['签发机关', '鑫发机关', '金设机关', '签发物关']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
@@ -119,6 +119,10 @@ class OCRIDCard():
             return 0
         axis_true = {}
         axis_dict = defaultdict(list)
+        
+#         height = [(i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2 for i in self._result_up[0]]
+#         height = sum(height)/len(height)
+        
         for i in self._result_up[0]:
             height = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             width = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
@@ -175,7 +179,7 @@ class OCRIDCard():
                 h = height if len(i[1][0])==2 else height*0.75
                 x = i[0][0][0]
                 y = i[0][0][1]
-                axis_dict['user_name'].append(([x+w*3.5, y-h*8.5, x+w*10, y-h*6], 0.4))
+                axis_dict['user_name'].append(([x+w*3.5, y-h*8, x+w*10, y-h*5.5], 0.4))
                 axis_dict['user_sex'].append(([x+w*3.5, y-h*5.5, x+w*6, y-h*3.5], 0.6))
                 axis_dict['user_nation'].append(([x+w*11.5, y-h*5.5, x+w*15, y-h*3.5], 0.6))
                 axis_dict['user_born'].append(([x+w*3.5, y-h*3.5, x+w*18, y-h], 0.8))
@@ -202,7 +206,7 @@ class OCRIDCard():
                 axis_dict['user_address'].append(([x-w*0.1, y+h*2, x+w*1.3, y+h*6], 0.8))
                 axis_dict['user_sex'].append(([x-w*0.1, y-h*2.5, x+w*0.2, y-h*0.8], 0.8))
                 axis_dict['user_nation'].append(([x+w*0.65, y-h*2.5, x+w*0.85, y-h*0.8], 0.8))
-                axis_dict['user_name'].append(([x-w*0.1, y-h*5.5, x+w*0.5, y-h*3], 0.8))
+                axis_dict['user_name'].append(([x-w*0.1, y-h*4.5, x+w*0.5, y-h*2.5], 0.8))
                 axis_dict['user_face'].append(([x+w*1.25, y-h*4, x+w*2.2, y+h*6], 0.8))
                 axis_dict['user_card'].append(([x-w*0.5, y-h*6.5, x+w*2.5, y+h*10.5], 0.8))
                 break
@@ -247,7 +251,7 @@ class OCRIDCard():
             h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_address'][1])
             w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_address'][0])
 #             print(i,h1/h, w1/w, address)
-            if h1/h>0.6 and w1/w>0.6 and len(i[1][0])>1:
+            if h1/h>0.6 and w1/w>0.6:
 #                 print(i,'\n')
                 if len(address)==0:
                     for char in self._char_address:
@@ -289,10 +293,10 @@ class OCRIDCard():
         if len(self._result_down)==0:
             return 0
         for i in self._result_down[0]:
-            if '身份证' in i[1][0]:
-                self._info['user_type'] = '居民身份证'
-            elif '居住证' in i[1][0]:
+            if '居住证' in i[1][0]:
                 self._info['user_type'] = i[1][0]
+            else:
+                self._info['user_type'] = '居民身份证'
         
         for i in self._result_down[0]:
             if '公安局' in i[1][0] or '分局' in i[1][0]:
