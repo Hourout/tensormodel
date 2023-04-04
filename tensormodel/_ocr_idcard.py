@@ -7,6 +7,7 @@ import linora as la
 __all__ = ['OCRIDCard']
 
 
+
 class OCRIDCard():
     def __init__(self):
         self.ocr = paddleocr.PaddleOCR(show_log=False)
@@ -16,6 +17,7 @@ class OCRIDCard():
         self._char_address = ['住址', '佳址', '主址', '住 址', '往址', '生址', '佳道']
         self._char_organization = ['签发机关', '鑫发机关', '金设机关', '签发物关']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        self._axis = None
         
     def predict(self, image, axis=False):
         if isinstance(image, str):
@@ -60,7 +62,7 @@ class OCRIDCard():
                 image1 = la.image.image_to_array(image1)
             else:
                 image1 = la.image.image_to_array(image)
-            result = ocr.ocr(image1, cls=False)
+            result = self.ocr.ocr(image1, cls=False)
             
             if not state_up:
                 rank = [0,0,0,0,0]
@@ -107,7 +109,7 @@ class OCRIDCard():
             self._info['user_address'] = '图片模糊:未识别出地址'
             self._info['user_number'] = '图片模糊:未识别出身份证号码'
         if state_down:
-            self._info['user_type'] = '图片模糊:未识别出身份证类型'
+            self._info['user_type'] = '居民身份证'
             self._info['user_organization'] = '图片模糊:未识别出签发机关'
             self._info['user_validity_period'] = '图片模糊:未识别出有效期限'
         if state_up == state_down == False:
@@ -222,28 +224,31 @@ class OCRIDCard():
                 else:
                     self._error = '图片模糊:未识别出有效信息'
                     return 0
-        self._axis = axis_true
+        if self._axis is None:
+            self._axis = axis_true
         
         for i in self._result_up[0]:
-            height = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
-            width = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
             if len(i[1][0])==18 or '号码' in i[1][0] or '公民' in i[1][0]:
-                if len(i[1][0])>=18 and i[1][1]<0.65:
-                    self._error = '图片模糊:身份证号码识别概率较低'
-                    return 0
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number'] = i[1][0][-18:]
                     self._info['user_sex'] =  '男' if int(self._info['user_number'][16])%2 else '女'
                     self._info['user_born'] = f"{self._info['user_number'][6:10]}年{int(self._info['user_number'][10:12])}月{int(self._info['user_number'][12:14])}日"
-            else:
-                for char in self._char_nation:
-                    if char in i[1][0]:
-                        if '汉' in i[1][0]:
-                            self._info['user_nation'] = '汉'
-                            break
-                        elif (i[1][0][i[1][0].find(char)+2:]).strip()!='':
-                            self._info['user_nation'] = (i[1][0][i[1][0].find(char)+2:]).strip()
-                            break
+                    break
+        if '图片模糊' in self._info['user_number']:
+            self._error = '图片模糊:未识别出身份证号码'
+            return 0
+        
+        for i in self._result_up[0]:
+            if '图片模糊' not in self._info['user_name']:
+                break
+            for char in self._char_nation:
+                if char in i[1][0]:
+                    if '汉' in i[1][0]:
+                        self._info['user_nation'] = '汉'
+                        break
+                    elif (i[1][0][i[1][0].find(char)+2:]).strip()!='':
+                        self._info['user_nation'] = (i[1][0][i[1][0].find(char)+2:]).strip()
+                        break
         if '图片模糊' in self._info['user_nation']:
             self._info['user_nation'] = '汉'
         
@@ -301,8 +306,7 @@ class OCRIDCard():
         for i in self._result_down[0]:
             if '居住证' in i[1][0]:
                 self._info['user_type'] = i[1][0]
-            else:
-                self._info['user_type'] = '居民身份证'
+                break
         
         for i in self._result_down[0]:
             if '公安局' in i[1][0] or '分局' in i[1][0]:
@@ -349,6 +353,4 @@ class OCRIDCard():
                         if len(temp)==16:
                             self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[12:14]}.{temp[14:16]}'
                         
-
-
 
