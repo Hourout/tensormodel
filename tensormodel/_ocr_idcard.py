@@ -17,9 +17,9 @@ class OCRIDCard():
         self._char_address = ['住址', '佳址', '主址', '住 址', '往址', '生址', '佳道']
         self._char_organization = ['签发机关', '鑫发机关', '金设机关', '签发物关']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        self._axis = None
         
     def predict(self, image, axis=False):
+        self._axis = None
         if isinstance(image, str):
             image = la.image.read_image(image)
             self._image = la.image.color_convert(image)
@@ -313,7 +313,7 @@ class OCRIDCard():
         
         self._axis['user_born'][2] = min(self._axis['user_born'][2], self._axis['user_address'][2])
         self._axis['user_face'][0] = self._axis['user_address'][2]+10
-        self._axis['user_face'][2] = self._axis['user_face'][0]+(self._axis['user_address'][2]-self._axis['user_address'][0])*0.85
+        self._axis['user_face'][2] = self._axis['user_face'][0]+(self._axis['user_address'][2]-self._axis['user_address'][0])*0.8
         self._axis['user_face'][3] = min(self._axis['user_face'][3], self._axis['user_number'][1]-10)
     
     def _axis_transform_down(self):
