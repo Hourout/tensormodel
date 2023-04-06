@@ -7,6 +7,7 @@ import linora as la
 __all__ = ['OCRIDCard']
 
 
+
 class OCRIDCard():
     def __init__(self):
         self.ocr = paddleocr.PaddleOCR(show_log=False)
@@ -18,7 +19,7 @@ class OCRIDCard():
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         self._keys = ['user_name', 'user_sex', 'user_nation', 'user_born', 'user_address', 'user_number', 'user_face', 'user_card']
         
-    def predict(self, image, back=True, axis=False):
+    def predict(self, image, back=True):
         self._axis = None
         if isinstance(image, str):
             image = la.image.read_image(image)
@@ -43,13 +44,7 @@ class OCRIDCard():
                         if '图片模糊' not in self._temp[j]:
                             self._info[j] = self._temp[j]
                 break
-
-        if axis:
-            if len(self._result_up)==0:
-                return {'info':self._info}
-            else:
-                return {'info':self._info, 'axis':self._axis, 'angle_up':self._angle_up}
-        return self._info
+        return {'info':self._info, 'axis':self._axis, 'angle':self._angle_up}
         
     def _direction_transform(self, image, back):
         state_up = False
@@ -128,7 +123,8 @@ class OCRIDCard():
     def _axis_transform_up(self):
         if len(self._result_up)==0:
             return 0
-        axis_true = {}
+        fix_x = []
+        axis_true = defaultdict(list)
         axis_dict = defaultdict(list)
         
 #         height = [(i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2 for i in self._result_up[0]]
@@ -137,10 +133,13 @@ class OCRIDCard():
         for i in self._result_up[0]:
             height = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             width = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
-            if sum([1 for char in self._char_name if i[1][0].startswith(char)]):
+            if sum([1 for char in self._char_name if char in i[1][0]]):
+                for char in self._char_name:
+                    if char in i[1][0]:
+                        break
                 w = width/(len(i[1][0])+1) if len(i[1][0])==2 else width/(len(i[1][0])+2.5)
                 h = height if len(i[1][0])==2 else height*0.7
-                x = i[0][0][0]
+                x = i[0][0][0]+w*i[1][0].find(char)/len(i[1][0])
                 y = i[0][0][1] if len(i[1][0])==2 else i[0][0][1]+height*0.3
                 axis_true['user_name'] = [x+w*3.5, y-h, x+w*10, y+h*1.5]
                 axis_dict['user_sex'].append(([x+w*3.5, y+h*2, x+w*6, y+h*3.5], 0.8))
@@ -185,10 +184,13 @@ class OCRIDCard():
                 axis_dict['user_address'].append(([x+w*3.5, y+h*1.5, x+w*21.5, y+h*5.5], 0.8))
                 axis_dict['user_face'].append(([x+w*21.5, y-h*5, x+w*31.5, y+h*9], 0.8))
                 axis_dict['user_card'].append(([x-w*5, y-h*8, x+w*34.5, y+h*15], 0.8))
-            elif sum([1 for char in self._char_address if i[1][0].startswith(char)])==1:
+            elif sum([1 for char in self._char_address if char in i[1][0]])==1:
+                for char in self._char_address:
+                    if char in i[1][0]:
+                        break
                 w = width/(len(i[1][0])+1) if len(i[1][0])==2 else width/(len(i[1][0])+2.5)
                 h = height if len(i[1][0])==2 else height*0.75
-                x = i[0][0][0]
+                x = i[0][0][0]+w*i[1][0].find(char)/len(i[1][0])
                 y = i[0][0][1]
                 axis_dict['user_name'].append(([x+w*3.5, y-h*8, x+w*10, y-h*5.5], 0.4))
                 axis_dict['user_sex'].append(([x+w*3.5, y-h*5.5, x+w*6, y-h*3.5], 0.6))
@@ -198,17 +200,20 @@ class OCRIDCard():
                 axis_dict['user_face'].append(([x+w*21.5, y-h*8, x+w*31.5, y+h*5.5], 0.8))
                 axis_dict['user_card'].append(([x-w*5, y-h*13, x+w*34.5, y+h*12], 0.8))
             elif len(i[1][0])==18 or '号码' in i[1][0] or '公民' in i[1][0]:
+                w = i[0][2][0]-i[0][0][0]
                 if sum([1 for j in i[1][0] if j in '0123456789xX'])==18:
-                    axis_true['user_number'] = [i[0][0][0], i[0][0][1], i[0][2][0], i[0][2][1]]
-                elif i[1][0].startswith('公民') and len(i[1][0])>20:
-                    axis_true['user_number'] = [i[0][0][0]+(i[0][2][0]-i[0][0][0])*0.35, 
-                                                i[0][0][1], i[0][2][0], i[0][2][1]]
-                elif i[1][0].startswith('号码') and len(i[1][0])>20:
-                    axis_true['user_number'] = [i[0][0][0]+(i[0][2][0]-i[0][0][0])*0.18, 
-                                                i[0][0][1], i[0][2][0], i[0][2][1]]
+                    if len(i[1][0])==18:
+                        axis_true['user_number'] = [i[0][0][0], i[0][0][1], i[0][2][0], i[0][2][1]]
+                    elif '公民' in i[1][0] and len(i[1][0])>20:
+                        axis_true['user_number'] = [i[0][0][0]+w*0.3+w*i[1][0].find('公民')/len(i[1][0]), 
+                                                    i[0][0][1], i[0][2][0], i[0][2][1]]
+                    elif '号码' in i[1][0] and len(i[1][0])>20:
+                        axis_true['user_number'] = [i[0][0][0]+w*0.18+w*i[1][0].find('号码')/len(i[1][0]), 
+                                                    i[0][0][1], i[0][2][0], i[0][2][1]]
 
         for i in self._result_up[0]:
             if len(i[1][0]) in [9, 10, 11] and i[1][0].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日'):
+                fix_x.append(i[0][0][0])
                 w = i[0][2][0]-i[0][0][0]
                 h = i[0][2][1]-i[0][0][1]
                 x = i[0][0][0]
@@ -233,8 +238,12 @@ class OCRIDCard():
                 else:
                     self._error = '图片模糊:未识别出有效信息'
                     return 0
+        
+        axis_true['user_address'][3] = axis_true['user_number'][1]-(axis_true['user_number'][3]-axis_true['user_number'][1])
         if self._axis is None:
-            self._axis = axis_true
+            self._axis = axis_true.copy()
+        for i in axis_true:
+            axis_true[i] = tuple(axis_true[i])
         
         for i in self._result_up[0]:
             if len(i[1][0])==18 or '号码' in i[1][0] or '公民' in i[1][0]:
@@ -271,21 +280,25 @@ class OCRIDCard():
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
             h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_address'][1])
             w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_address'][0])
-#             print(i,h1/h, w1/w, address)
+#             print(i,h1,w1,h1/h, w1/w, address,axis_true['user_address'])
             if h1/h>0.6 and w1/w>0.6:
-#                 print(i,'\n')
+#                 print(i[1][0],'\n')
                 if len(address)==0:
                     for char in self._char_address:
                         if i[1][0].startswith(char):
                             address += (i[1][0][i[1][0].find(char)+len(char):]).strip()
+                            self._axis['user_address'][1] = max(i[0][0][1], i[0][1][1])
                             self._axis['user_address'][2] = max(i[0][1][0], i[0][2][0])
                             break
                     if len(address)==0:
                         address += i[1][0]
+                        self._axis['user_address'][1] = max(i[0][0][1], i[0][1][1])
                         self._axis['user_address'][2] = max(i[0][1][0], i[0][2][0])
+                        fix_x.append(i[0][0][0])
                 else:
                     address += i[1][0]
-                    self._axis['user_address'][3] = i[0][2][1]
+                    self._axis['user_address'][3] = max(i[0][2][1],i[0][3][1])
+                    fix_x.append(i[0][0][0])
         if address.strip()=='':
             self._error = '图片模糊:未识别出住址'
             return 0
@@ -295,9 +308,9 @@ class OCRIDCard():
             if '图片模糊' not in self._info['user_name']:
                 break
             for char in self._char_name:
-                if i[1][0].startswith(char) and len(i[1][0])>len(char)+1:
+                if char in i[1][0] and len(i[1][0])>len(char)+1:
                     self._info['user_name'] = (i[1][0][i[1][0].find(char)+len(char):]).strip()
-                    self._axis['user_name'] = self._axis['user_name'][:2]+i[0][2]
+                    self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
                     break
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
@@ -306,26 +319,47 @@ class OCRIDCard():
             if h1/h>0.6 and w1/w>0.6:
                 if len(i[1][0])>3 and i[1][0].find('名')==1:
                     self._info['user_name'] = i[1][0][2:]
-                    self._axis['user_name'] = self._axis['user_name'][:2]+i[0][2]
+                    self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
                     break
                 elif i[1][0].startswith('名') and len(i[1][0])>2:
                     self._info['user_name'] = i[1][0][1:]
-                    self._axis['user_name'] = self._axis['user_name'][:2]+i[0][2]
+                    self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
                     break
                 elif len(i[1][0])>1:
                     self._info['user_name'] = i[1][0]
-                    self._axis['user_name'] = self._axis['user_name'][:2]+i[0][2]
+                    self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
+                    fix_x.append(i[0][0][0])
                     break
         if '图片模糊' in self._info['user_name']:
             self._error = '图片模糊:未识别出姓名'
             return 0
         
+        if len(fix_x)>0:
+            fix_x = sum(fix_x)/len(fix_x)
+            self._axis['user_name'][0] = fix_x
+            self._axis['user_sex'][0] = fix_x
+            self._axis['user_born'][0] = fix_x
+            self._axis['user_address'][0] = fix_x
+        
+        fix_y = []
+        for i in self._result_up[0]:
+            if '性别' in i[1][0]:
+                fix_y.append(min(i[0][0][1], i[0][1][1]))
+            elif sum([1 for char in self._char_nation if char in i[1][0]])==1:
+                fix_y.append(min(i[0][0][1], i[0][1][1]))
+        if len(fix_y)>0:
+            fix_y = sum(fix_y)/len(fix_y)
+            self._axis['user_sex'][1] = fix_y
+            self._axis['user_nation'][1] = fix_y
+        
         self._axis['user_born'][2] = min(self._axis['user_born'][2], self._axis['user_address'][2])
-        self._axis['user_face'][0] = self._axis['user_address'][2]+10
-        self._axis['user_face'][2] = self._axis['user_face'][0]+(self._axis['user_address'][2]-self._axis['user_address'][0])*0.8
-        self._axis['user_face'][3] = min(self._axis['user_face'][3], self._axis['user_number'][1]-10)
+        self._axis['user_face'][0] = self._axis['user_address'][2]+(self._axis['user_number'][3]-self._axis['user_number'][1])*0.7
+        self._axis['user_face'][1] = self._axis['user_name'][1]
+        self._axis['user_face'][2] = self._axis['user_face'][0]+(self._axis['user_number'][2]-self._axis['user_number'][0])*0.58
+        self._axis['user_face'][3] = self._axis['user_number'][1]-(self._axis['user_number'][3]-self._axis['user_number'][1])*1.3
         self._axis['user_card'][0] = self._axis['user_address'][0]-(self._axis['user_address'][2]-self._axis['user_address'][0])*0.6
-        self._axis['user_card'][2] = self._axis['user_face'][0]+(self._axis['user_address'][2]-self._axis['user_address'][0])
+        self._axis['user_card'][1] = self._axis['user_name'][1]-(self._axis['user_name'][3]-self._axis['user_name'][1])*2.5
+        self._axis['user_card'][2] = self._axis['user_face'][0]+(self._axis['user_number'][2]-self._axis['user_number'][0])*0.68
         self._axis['user_card'][3] = self._axis['user_number'][1]+(self._axis['user_number'][3]-self._axis['user_number'][1])*3
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
@@ -420,6 +454,8 @@ class OCRIDCard():
         else:
             raise ValueError(f'`box_axis` must be one of {self._keys}')
 
+        if self._angle_up>0:
+            image = la.image.rotate(image, self._angle_up, expand=True)
         t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in box_axis if i not in mask_axis]
         if len(t)>0:
             image = la.image.draw_box(image, t, width=2)
@@ -427,7 +463,12 @@ class OCRIDCard():
         if len(t)>0:
             image = la.image.draw_box(image, t, fill_color=(255,255,255))
         return image
-
-
+    
+    def env_check(self):
+        env = la.utils.pip.freeze('paddleocr')['paddleocr']
+        if env>='2.6.1.3':
+            return 'Environment check ok.'
+        else:
+            return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
 
