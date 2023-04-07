@@ -91,7 +91,7 @@ class OCRIDCard():
                     if rank[1]>rank[0]:
                         state_down = True
                         self._result_down = result.copy()
-                        self._angle_up = angle
+                        self._angle_down = angle
                         
                 if state_down and state_up:
                     break
