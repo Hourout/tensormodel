@@ -339,6 +339,7 @@ class OCRIDCard():
             self._axis['user_sex'][1] = fix_y
             self._axis['user_nation'][1] = fix_y
         
+        self._axis['user_sex'][2] = self._axis['user_address'][0]+(self._axis['user_address'][2]-self._axis['user_address'][0])/11*1.5
         self._axis['user_born'][2] = min(self._axis['user_born'][2], self._axis['user_address'][2])
         
         self._axis['user_face'] = [0,0,0,0]
@@ -347,8 +348,8 @@ class OCRIDCard():
         self._axis['user_face'][1] = self._axis['user_name'][1]
         self._axis['user_face'][2] = self._axis['user_face'][0]+(self._axis['user_number'][2]-self._axis['user_number'][0])*0.58
         self._axis['user_face'][3] = self._axis['user_number'][1]-(self._axis['user_number'][3]-self._axis['user_number'][1])
-        self._axis['user_card'][0] = self._axis['user_address'][0]-(self._axis['user_address'][2]-self._axis['user_address'][0])*0.6
-        self._axis['user_card'][1] = self._axis['user_name'][1]-(self._axis['user_name'][3]-self._axis['user_name'][1])*2.5
+        self._axis['user_card'][0] = self._axis['user_address'][0]-(self._axis['user_address'][2]-self._axis['user_address'][0])*0.45
+        self._axis['user_card'][1] = self._axis['user_name'][1]-(self._axis['user_name'][3]-self._axis['user_name'][1])*2.25
         self._axis['user_card'][2] = self._axis['user_face'][0]+(self._axis['user_number'][2]-self._axis['user_number'][0])*0.68
         self._axis['user_card'][3] = self._axis['user_number'][1]+(self._axis['user_number'][3]-self._axis['user_number'][1])*3
         for i in self._axis:
@@ -463,7 +464,6 @@ class OCRIDCard():
             return 'Environment check ok.'
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
-
 
 
 
