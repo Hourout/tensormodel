@@ -411,8 +411,8 @@ class OCRIDCard():
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
         if image is None:
             image = self._image.copy()
-        if axis is None:
-            axis = self._axis
+        angle = self._angle_up if axis is None else axis['angle']
+        axis = self._axis if axis is None else axis['axis']
 
         if box_axis=='all':
             box_axis = self._keys
@@ -446,8 +446,8 @@ class OCRIDCard():
             raise ValueError(f'`box_axis` must be one of {self._keys}')
 
         try:
-            if self._angle_up>0:
-                image = la.image.rotate(image, self._angle_up, expand=True)
+            if angle>0:
+                image = la.image.rotate(image, angle, expand=True)
             t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in box_axis if i not in mask_axis and i in axis]
             if len(t)>0:
                 image = la.image.draw_box(image, t, width=2)
