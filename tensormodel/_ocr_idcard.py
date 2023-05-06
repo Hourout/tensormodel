@@ -44,12 +44,12 @@ class OCRIDCard():
                         if '图片模糊' not in self._temp[j]:
                             self._info[j] = self._temp[j]
                 break
-        if '图片模糊' in self._info['user_number']:
-            self._error = '图片模糊:未识别出身份证号码'
-        if self._info['user_address'].strip()=='':
-            self._error = '图片模糊:未识别出住址'
-        if '图片模糊' in self._info['user_name']:
-            self._error = '图片模糊:未识别出姓名'
+#         if '图片模糊' in self._info['user_number']:
+#             self._error = '图片模糊:未识别出身份证号码'
+#         if self._info['user_address'].strip()=='':
+#             self._error = '图片模糊:未识别出住址'
+#         if '图片模糊' in self._info['user_name']:
+#             self._error = '图片模糊:未识别出姓名'
         return {'info':self._info, 'axis':self._axis, 'angle':self._angle_up, 'error':self._error}
         
     def _direction_transform(self, image, back):
