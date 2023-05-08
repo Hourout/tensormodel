@@ -44,19 +44,27 @@ class OCRIDCard():
                         if '图片模糊' not in self._temp[j]:
                             self._info[j] = self._temp[j]
                 break
-#         if '图片模糊' in self._info['user_number']:
+#         if '图片模糊' in self._info.get('user_number', ''):
 #             self._error = '图片模糊:未识别出身份证号码'
 #         if self._info['user_address'].strip()=='':
 #             self._error = '图片模糊:未识别出住址'
 #         if '图片模糊' in self._info['user_name']:
 #             self._error = '图片模糊:未识别出姓名'
-        return {'info':self._info, 'axis':self._axis, 'angle':self._angle_up, 'error':self._error}
+        if self._angle_up!=-1:
+            angle = self._angle_up
+        elif self._angle_down!=-1:
+            angle = self._angle_down
+        else:
+            angle = 0
+        return {'info':self._info, 'axis':self._axis, 'angle':angle, 'error':self._error}
         
     def _direction_transform(self, image, back):
         state_up = False
         state_down = False
         self._result_up = []
         self._result_down = []
+        self._angle_up = -1
+        self._angle_down = -1
         for angle in [0, 90, 180, 270]:
             if angle>0:
                 image1 = la.image.rotate(image, angle, expand=True)
