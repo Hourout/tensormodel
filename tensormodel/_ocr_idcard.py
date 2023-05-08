@@ -45,18 +45,20 @@ class OCRIDCard():
                             self._info[j] = self._temp[j]
                 break
 
+        angle = 0
+        if self._angle_down!=-1:
+            angle = self._angle_down
+            for i in ['user_type', 'user_organization', 'user_validity_period']:
+                if '图片模糊' in self._info[i]:
+                    self._error = self._info[i]
+                    break
         if self._angle_up!=-1:
             angle = self._angle_up
-            if '图片模糊' in self._info['user_number']:
-                self._error = '图片模糊:未识别出身份证号码'
-            if self._info['user_address'].strip()=='':
-                self._error = '图片模糊:未识别出住址'
-            if '图片模糊' in self._info['user_name']:
-                self._error = '图片模糊:未识别出姓名'
-        elif self._angle_down!=-1:
-            angle = self._angle_down
-        else:
-            angle = 0
+            for i in ['user_name', 'user_sex', 'user_nation', 'user_born', 'user_address', 'user_number']:
+                if '图片模糊' in self._info[i]:
+                    self._error = self._info[i]
+                    break
+            
         return {'data':self._info, 'axis':self._axis, 'angle':angle, 'error':self._error}
         
     def _direction_transform(self, image, back):
@@ -324,7 +326,7 @@ class OCRIDCard():
                         self._info['user_name'] = i[1][0]
                         self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
                         fix_x.append(i[0][0][0])
-        if '图片模糊' in self._info['user_address'] or self._info['user_address']=='':
+        if '图片模糊' in self._info['user_address'] and address!='':
             self._info['user_address'] = address
         if '图片模糊' in self._info['user_nation']:
             self._info['user_nation'] = '汉'
