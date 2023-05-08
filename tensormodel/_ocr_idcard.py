@@ -180,7 +180,7 @@ class OCRIDCard():
                             y = i[0][0][1]
                             axis_true['user_sex'] = [x+w*3.5, y]+i[0][2]
                         else:
-                            w = width/(len(i[1][0])+1)
+                            w = w/(len(i[1][0])+1)
                             x = i[0][0][0]+w*i[1][0].find(char)
                             y = i[0][0][1]
                             axis_true['user_sex'] = [x+w*3.5, y, x+w*6, y+h*1.25]
