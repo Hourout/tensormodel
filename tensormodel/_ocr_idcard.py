@@ -270,6 +270,7 @@ class OCRIDCard():
             axis_true[i] = tuple(axis_true[i])
         
         address = ''
+        rank = 0
         for i in self._result_up[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
@@ -315,18 +316,23 @@ class OCRIDCard():
             if '图片模糊' in self._info['user_name']:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name'][0])            
-                if h1/h>0.6 and w1/w>0.6:
+                if h1/h>0.6 and w1/w>0.6 or (h1/h>0.25 and w1/w>0.25 and rank==0):
                     if len(i[1][0])>3 and i[1][0].find('名')==1:
                         self._info['user_name'] = i[1][0][2:]
                         self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
+                        rank += 1
                     elif i[1][0].startswith('名') and len(i[1][0])>2:
                         self._info['user_name'] = i[1][0][1:]
                         self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
+                        rank += 1
                     elif len(i[1][0])>1:
                         self._info['user_name'] = i[1][0]
                         self._axis['user_name'] = [self._axis['user_name'][0], i[0][0][1]]+i[0][2]
                         fix_x.append(i[0][0][0])
+                        rank += 1
         if '图片模糊' in self._info['user_address'] and address!='':
+            if '公民身份号码' in address:
+                address = address[:address.find('公民身份号码')]
             self._info['user_address'] = address
         if '图片模糊' in self._info['user_nation']:
             self._info['user_nation'] = '汉'
