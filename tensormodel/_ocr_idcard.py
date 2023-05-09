@@ -238,7 +238,7 @@ class OCRIDCard():
                             w = w/(len(i[1][0])+1)
                         x = i[0][0][0]+w*i[1][0].find(char)
                         y = i[0][0][1]
-                        axis_true['user_address'] = [x+w*3.2, y-h*0.5, x+w*21.5, y+h*4.5]
+                        axis_true['user_address'] = [x+w*3.2, y-h*0.5, x+w*21.5, y+h*5]
                         axis_dict['user_name'].append(([x+w*3.5, y-h*8, x+w*10, y-h*5.5], 0.4))
                         axis_dict['user_sex'].append(([x+w*3.5, y-h*5.25, x+w*6, y-h*3.5], 0.6))
                         axis_dict['user_nation'].append(([x+w*11.5, y-h*5.25, x+w*15, y-h*3.5], 0.4))
@@ -283,17 +283,17 @@ class OCRIDCard():
                     for char in self._char_address:
                         if i[1][0].startswith(char):
                             address += (i[1][0][i[1][0].find(char)+len(char):]).strip()
-                            self._axis['user_address'][1] = max(i[0][0][1], i[0][1][1])
+                            self._axis['user_address'][1] = min(i[0][0][1], i[0][1][1])
                             self._axis['user_address'][2] = max(i[0][1][0], i[0][2][0])
                             break
                     if len(address)==0:
                         address += i[1][0]
-                        self._axis['user_address'][1] = max(i[0][0][1], i[0][1][1])
+                        self._axis['user_address'][1] = min(i[0][0][1], i[0][1][1])
                         self._axis['user_address'][2] = max(i[0][1][0], i[0][2][0])
                         fix_x.append(i[0][0][0])
                 else:
                     address += i[1][0]
-                    self._axis['user_address'][3] = max(i[0][2][1],i[0][3][1])
+                    self._axis['user_address'][3] = max(i[0][2][1], i[0][3][1])
                     fix_x.append(i[0][0][0])
             if '图片模糊' in self._info['user_number']:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
@@ -393,7 +393,7 @@ class OCRIDCard():
             self._info['user_organization'] = self._info['user_organization'].replace(i, '公安局')
         
         for i in self._result_down[0]:
-            if sum([1 for char in ['长期', '.', '-', '一'] if char in i[1][0]])>1:
+            if sum([1 for char in ['长期', '.', '-', '一'] if char in i[1][0]])>0:
                 if sum([1 for char in self._char_number if char in i[1][0]])>1:
                     if sum([1 for j in i[1][0][-21:] if j in '0123456789.-一'])==21:
                         self._info['user_validity_period'] = i[1][0][-21:].replace('一', '-')
@@ -404,24 +404,18 @@ class OCRIDCard():
                             break
                         else:
                             temp = i[1][0]
-                            for j in ['.一:-,']:
+                            for j in ['.', '一', ':', '-', ',']:
                                 temp = temp.replace(j, '')
-                            for j in temp:
-                                if j in self._char_number:
-                                    break
-                                else:
-                                    temp = temp[temp.find(j)+1:]
+                            while temp[0] not in self._char_number:
+                                temp = temp[1:]
                             if len(temp)==10:
                                 self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-长期'
                     else:
                         temp = i[1][0]
-                        for j in '.一:-,':
+                        for j in ['.', '一', ':', '-', ',']:
                             temp = temp.replace(j, '')
-                        for j in temp:
-                            if j in self._char_number:
-                                break
-                            else:
-                                temp = temp[temp.find(j)+1:]
+                        while temp[0] not in self._char_number:
+                            temp = temp[1:]
                         if len(temp)==16:
                             self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[12:14]}.{temp[14:16]}'
                         elif len(temp) in [14, 15]:
@@ -487,6 +481,8 @@ class OCRIDCard():
             return 'Environment check ok.'
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
+
+
 
 
 
