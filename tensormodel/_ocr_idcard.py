@@ -10,7 +10,7 @@ class OCRIDCard():
     def __init__(self):
         self.ocr = paddleocr.PaddleOCR(show_log=False)
         self._error = 'ok'
-        self._char_name = [i+j for i in ['姓', '娃', '妇', '性'] for j in ['名', '容', '吉']]
+        self._char_name = [i+j for i in ['姓', '娃', '妇', '性', '赵', '生'] for j in ['名', '容', '吉']]
         self._char_sex = ['性别']
         self._char_nation = ['民族', '民旅', '民康', '民旗', '民路', '昆旗']
         self._char_address = ['住址', '佳址', '主址', '住 址', '往址', '生址', '佳道']
@@ -398,7 +398,7 @@ class OCRIDCard():
                             break
                         else:
                             temp = i[1][0]
-                            for j in ['.一:-']:
+                            for j in ['.一:-,']:
                                 temp = temp.replace(j, '')
                             for j in temp:
                                 if j in self._char_number:
@@ -409,7 +409,7 @@ class OCRIDCard():
                                 self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-长期'
                     else:
                         temp = i[1][0]
-                        for j in '.一:-':
+                        for j in '.一:-,':
                             temp = temp.replace(j, '')
                         for j in temp:
                             if j in self._char_number:
@@ -418,6 +418,12 @@ class OCRIDCard():
                                 temp = temp[temp.find(j)+1:]
                         if len(temp)==16:
                             self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[12:14]}.{temp[14:16]}'
+                        elif len(temp) in [14, 15]:
+                            self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[12:14]}.{temp[6:8]}'
+                        elif len(temp) in [12, 13]:
+                            self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[4:6]}.{temp[6:8]}'
+                        elif len(temp) in [8, 9, 10, 11]:
+                            self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{int(temp[:4])+20}.{temp[4:6]}.{temp[6:8]}'
     
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
         if image is None:
