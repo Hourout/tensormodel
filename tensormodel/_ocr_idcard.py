@@ -24,6 +24,8 @@ class OCRIDCard():
         if isinstance(image, str):
             image = la.image.read_image(image)
             self._image = la.image.color_convert(image)
+        else:
+            self._image = image
         self._direction_transform(self._image, back)
         if isinstance(self._info, str):
             self._direction_transform(la.image.enhance_brightness(self._image, 0.8), back)
