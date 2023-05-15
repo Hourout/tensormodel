@@ -7,8 +7,8 @@ __all__ = ['OCRMarriageCard']
 
 
 class OCRMarriageCard():
-    def __init__(self):
-        self.ocr = paddleocr.PaddleOCR(show_log=False)
+    def __init__(self, ocr=None):
+        self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
         self._error = 'ok'
         self._keys = ['marriage_name', 'marriage_date', 'marriage_id', 
                       'user_name_up', 'user_sex_up', 'user_country_up', 'user_born_up', 'user_number_up', 

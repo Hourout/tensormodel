@@ -7,8 +7,8 @@ __all__ = ['OCRIDCard']
 
 
 class OCRIDCard():
-    def __init__(self):
-        self.ocr = paddleocr.PaddleOCR(show_log=False)
+    def __init__(self, ocr=None):
+        self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
         self._error = 'ok'
         self._char_name = [i+j for i in ['姓', '娃', '妇', '性', '赵', '生'] for j in ['名', '容', '吉']]
         self._char_sex = ['性别']
