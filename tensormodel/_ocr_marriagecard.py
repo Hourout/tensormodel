@@ -249,6 +249,7 @@ class OCRMarriageCard():
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
                             if i[1][1] >self._marriage_name_prob:
                                 self._info['user_name_up'] = (i[1][0][i[1][0].find(char)+len(char):]).strip()
+                                self._info['marriage_name'] = self._info['user_name_up']
                             else:
                                 self._info['user_name_up'] = self._info['marriage_name']
                             self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
@@ -261,18 +262,21 @@ class OCRMarriageCard():
                     if len(i[1][0])>3 and i[1][0].find('名')==1:
                         if i[1][1] >self._marriage_name_prob:
                             self._info['user_name_up'] = i[1][0][2:]
+                            self._info['marriage_name'] = self._info['user_name_up']
                         else:
                             self._info['user_name_up'] = self._info['marriage_name']
                         self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
                     elif i[1][0].startswith('名') and len(i[1][0])>2:
                         if i[1][1] >self._marriage_name_prob:
                             self._info['user_name_up'] = i[1][0][1:]
+                            self._info['marriage_name'] = self._info['user_name_up']
                         else:
                             self._info['user_name_up'] = self._info['marriage_name']
                         self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
                     elif len(i[1][0])>1:
                         if i[1][1] >self._marriage_name_prob:
                             self._info['user_name_up'] = i[1][0]
+                            self._info['marriage_name'] = self._info['user_name_up']
                         else:
                             self._info['user_name_up'] = self._info['marriage_name']
                         self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
@@ -358,14 +362,14 @@ class OCRMarriageCard():
                     self._info['user_born_down'] = f"{self._info['user_number_down'][6:10]}年{self._info['user_number_down'][10:12]}月{self._info['user_number_down'][12:14]}日"
 
         
+        if '图片模糊' in self._info['user_name_up'] and '图片模糊' not in self._info['marriage_name']:
+            self._info['user_name_up'] = self._info['marriage_name']
+        
         if len(fix_x)>0:
             fix_x = sum(fix_x)/len(fix_x)
             self._axis['marriage_name'][0] = fix_x
             self._axis['marriage_date'][0] = fix_x
             self._axis['marriage_id'][0] = fix_x
-        
-        
-        
         
         
         self._axis['user_face'] = [0,0,0,0]
