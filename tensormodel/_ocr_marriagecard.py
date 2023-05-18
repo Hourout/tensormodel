@@ -221,6 +221,8 @@ class OCRMarriageCard():
                         self._axis['marriage_name'] = [x, y]+i[0][2]
                         fix_x.append(i[0][0][0])
                         self._marriage_name_prob = i[1][1]
+                if '图片模糊' not in self._info['marriage_name']:
+                    continue
             if '图片模糊' in self._info['marriage_date']:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['marriage_date'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['marriage_date'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['marriage_date'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['marriage_date'][0])            
@@ -232,6 +234,8 @@ class OCRMarriageCard():
                         self._info['marriage_date'] = i[1][0]
                         self._axis['marriage_date'] = [x, y]+i[0][2]
                         fix_x.append(i[0][0][0])
+                if '图片模糊' not in self._info['marriage_date']:
+                    continue
             if '图片模糊' in self._info['marriage_id']:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['marriage_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['marriage_id'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['marriage_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['marriage_id'][0])            
@@ -239,10 +243,12 @@ class OCRMarriageCard():
                     if len(i[1][0])>15 and '号' in i[1][0]:
                         self._info['marriage_id'] = i[1][0][i[1][0].find('号')+1:]
                         self._axis['marriage_id'] = [self._axis['marriage_id'][0], y]+i[0][2]
-                    elif len(i[1][0])==19:
+                    elif len(i[1][0])>9:
                         self._info['marriage_id'] = i[1][0]
                         self._axis['marriage_id'] = [x, y]+i[0][2]
                         fix_x.append(i[0][0][0])
+                if '图片模糊' not in self._info['marriage_id']:
+                    continue
             if '图片模糊' in self._info['user_name_up']:
                 for char in self._char_user_name:
                     if char in i[1][0]:
@@ -364,6 +370,10 @@ class OCRMarriageCard():
         
         if '图片模糊' in self._info['user_name_up'] and '图片模糊' not in self._info['marriage_name']:
             self._info['user_name_up'] = self._info['marriage_name']
+        if '图片模糊' in self._info['user_country_up']:
+            self._info['user_country_up'] = '中国'
+        if '图片模糊' in self._info['user_country_down']:
+            self._info['user_country_down'] = '中国'
         
         if len(fix_x)>0:
             fix_x = sum(fix_x)/len(fix_x)
