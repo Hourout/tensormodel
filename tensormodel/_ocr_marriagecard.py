@@ -9,7 +9,6 @@ __all__ = ['OCRMarriageCard']
 class OCRMarriageCard():
     def __init__(self, ocr=None):
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
-        self._error = 'ok'
         self._keys = ['marriage_name', 'marriage_date', 'marriage_id', 
                       'user_name_up', 'user_sex_up', 'user_country_up', 'user_born_up', 'user_number_up', 
                       'user_name_down', 'user_sex_down', 'user_country_down', 'user_born_down', 'user_number_down', 
@@ -18,11 +17,12 @@ class OCRMarriageCard():
         self._char_marriage_date = ['登记日期']
         self._char_marriage_id = ['结婚证字号']
         self._char_user_name = ['姓名']
-        self._char_user_country = ['国籍']
+        self._char_user_country = ['国籍', '国箱']
         
     def predict(self, image):
         self._marriage_name_prob = 0
         self._axis = None
+        self._error = 'ok'
         if isinstance(image, str):
             image = la.image.read_image(image)
             self._image = la.image.color_convert(image)
@@ -32,7 +32,7 @@ class OCRMarriageCard():
         if isinstance(self._info, str):
             self._direction_transform(la.image.enhance_brightness(self._image, 0.8))
         if isinstance(self._info, str):
-            return self._info
+            return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
         self._axis_transform_up()
         for i in self._info:
             if '图片模糊' in self._info[i]:
@@ -46,12 +46,11 @@ class OCRMarriageCard():
                         if '图片模糊' not in self._temp[j]:
                             self._info[j] = self._temp[j]
                 break
-        if '图片模糊' in self._info['marriage_name']:
-            self._error = '图片模糊:未识别出持证人'
-        if '图片模糊' in self._info['marriage_date']:
-            self._error = '图片模糊:未识别出登记日期'
-        if '图片模糊' in self._info['marriage_id']:
-            self._error = '图片模糊:未识别出结婚证字号'
+        self._error = 'ok'
+        for i in self._info:
+            if '图片模糊' in self._info[i]:
+                self._error = self._info[i]
+                break
         return {'data':self._info, 'axis':self._axis, 'angle':self._angle, 'error':self._error}
         
     def _direction_transform(self, image):
@@ -87,19 +86,19 @@ class OCRMarriageCard():
         
         self._info = {}
         if state:
-            self._info['marriage_name'] = '图片模糊:未识别出'
-            self._info['marriage_date'] = '图片模糊:未识别出'
-            self._info['marriage_id'] = '图片模糊:未识别出'
-            self._info['user_name_up'] = '图片模糊:未识别出'
-            self._info['user_sex_up'] = '图片模糊:未识别出'
-            self._info['user_country_up'] = '图片模糊:未识别出'
-            self._info['user_born_up'] = '图片模糊:未识别出'
-            self._info['user_number_up'] = '图片模糊:未识别出'
-            self._info['user_name_down'] = '图片模糊:未识别出'
-            self._info['user_sex_down'] = '图片模糊:未识别出'
-            self._info['user_country_down'] = '图片模糊:未识别出'
-            self._info['user_born_down'] = '图片模糊:未识别出'
-            self._info['user_number_down'] = '图片模糊:未识别出'
+            self._info['marriage_name'] = '图片模糊:未识别出持证人'
+            self._info['marriage_date'] = '图片模糊:未识别出登记日期'
+            self._info['marriage_id'] = '图片模糊:未识别出结婚证字号'
+            self._info['user_name_up'] = '图片模糊:未识别出本人姓名'
+            self._info['user_sex_up'] = '图片模糊:未识别出本人性别'
+            self._info['user_country_up'] = '图片模糊:未识别出本人国籍'
+            self._info['user_born_up'] = '图片模糊:未识别出本人出生日期'
+            self._info['user_number_up'] = '图片模糊:未识别出本人身份证号码'
+            self._info['user_name_down'] = '图片模糊:未识别出配偶姓名'
+            self._info['user_sex_down'] = '图片模糊:未识别出配偶性别'
+            self._info['user_country_down'] = '图片模糊:未识别出配偶国籍'
+            self._info['user_born_down'] = '图片模糊:未识别出配偶出生日期'
+            self._info['user_number_down'] = '图片模糊:未识别出配偶身份证号码'
         else:
             self._info = '图片模糊:未识别出有效信息'
             self._error = '图片模糊:未识别出有效信息'
@@ -110,7 +109,6 @@ class OCRMarriageCard():
         fix_x = []
         axis_true = defaultdict(list)
         axis_dict = defaultdict(list)
-#         face_axis = None
         
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
@@ -159,7 +157,6 @@ class OCRMarriageCard():
                         break
             if 'user_number_up' not in axis_true:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
-#                     fix_x1.append(x)
                     axis_true['user_number_up'] = [x, y, max(i[0][1][0], i[0][2][0]), max(i[0][2][1], i[0][3][1])]
                     if len(i[1][0][:-18]):
                         axis_true['user_number_up'][0] = axis_true['user_number_up'][0]+w*len(i[1][0][:-18])/(len(i[1][0])-18+9+1.5)
@@ -168,14 +165,13 @@ class OCRMarriageCard():
                                                  axis_true['user_number_up'][0]+w*5.5/13, axis_true['user_number_up'][1]-h*2.5]
                     axis_true['user_country_up'] = [axis_true['user_number_up'][0]-w*0.33, axis_true['user_number_up'][1]-h*2.25, 
                                                     axis_true['user_number_up'][0]+w*3.5/13, axis_true['user_number_up'][1]-h*0.5]
-                    axis_true['user_sex_up'] = [axis_true['user_number_up'][0]+w*1.4, axis_true['user_number_up'][1]-h*3.5, 
-                                                axis_true['user_number_up'][0]+w*1.66, axis_true['user_number_up'][1]-h*2.5]
-                    axis_true['user_born_up'] = [axis_true['user_number_up'][0]+w*1.4, axis_true['user_number_up'][1]-h*2.25, 
-                                                 axis_true['user_number_up'][0]+w*2.1, axis_true['user_number_up'][1]-h*0.5]
+                    axis_true['user_sex_up'] = [axis_true['user_number_up'][0]+w*1.2, axis_true['user_number_up'][1]-h*3, 
+                                                axis_true['user_number_up'][0]+w*1.66, axis_true['user_number_up'][1]-h*1.25]
+                    axis_true['user_born_up'] = [axis_true['user_number_up'][0]+w*1.5, axis_true['user_number_up'][1]-h*1.75, 
+                                                 axis_true['user_number_up'][0]+w*2.3, axis_true['user_number_up'][1]-h*0.1]
                     continue
             if 'user_number_down' not in axis_true:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
-#                     fix_x1.append(x)
                     axis_true['user_number_down'] = [x, y, max(i[0][1][0], i[0][2][0]), max(i[0][2][1], i[0][3][1])]
                     if len(i[1][0][:-18]):
                         axis_true['user_number_down'][0] = axis_true['user_number_down'][0]+w*len(i[1][0][:-18])/(len(i[1][0])-18+9+1.5)
@@ -184,14 +180,14 @@ class OCRMarriageCard():
                                                    axis_true['user_number_down'][0]+w*5.5/13, axis_true['user_number_down'][1]-h*2.5]
                     axis_true['user_country_down'] = [axis_true['user_number_down'][0]-w*0.33, axis_true['user_number_down'][1]-h*2.25, 
                                                       axis_true['user_number_down'][0]+w*3.5/13, axis_true['user_number_down'][1]-h*0.5]
-                    axis_true['user_sex_down'] = [axis_true['user_number_down'][0]+w*1.4, axis_true['user_number_down'][1]-h*3.5, 
-                                                  axis_true['user_number_down'][0]+w*1.65, axis_true['user_number_down'][1]-h*2.5]
-                    axis_true['user_born_down'] = [axis_true['user_number_down'][0]+w*1.4, axis_true['user_number_down'][1]-h*2.25, 
-                                                   axis_true['user_number_down'][0]+w*2.1, axis_true['user_number_down'][1]-h*0.5]
+                    axis_true['user_sex_down'] = [axis_true['user_number_down'][0]+w*1.2, axis_true['user_number_down'][1]-h*3, 
+                                                  axis_true['user_number_down'][0]+w*1.65, axis_true['user_number_down'][1]-h*1.25]
+                    axis_true['user_born_down'] = [axis_true['user_number_down'][0]+w*1.5, axis_true['user_number_down'][1]-h*1.75, 
+                                                   axis_true['user_number_down'][0]+w*2.3, axis_true['user_number_down'][1]-h*0.1]
                     
                 
 
-        for i in ['marriage_name', 'marriage_date', 'marriage_id', ]:
+        for i in ['marriage_name', 'marriage_date', 'marriage_id', 'user_number_up', 'user_number_down']:
             if i not in axis_true:
                 if i in axis_dict:
                     weight = sum([j[1] for j in axis_dict[i]])
@@ -248,8 +244,6 @@ class OCRMarriageCard():
                         self._axis['marriage_id'] = [x, y]+i[0][2]
                         fix_x.append(i[0][0][0])
             if '图片模糊' in self._info['user_name_up']:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name_up'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name_up'][0])            
                 for char in self._char_user_name:
                     if char in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
@@ -259,27 +253,42 @@ class OCRMarriageCard():
                                 self._info['user_name_up'] = self._info['marriage_name']
                             self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
                             break
+                if '图片模糊' not in self._info['user_name_up']:
+                    continue
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name_up'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name_up'][0])            
                 if h1/h>0.6 and w1/w>0.6:
                     if len(i[1][0])>3 and i[1][0].find('名')==1:
-                        self._info['user_name_up'] = i[1][0][2:]
+                        if i[1][1] >self._marriage_name_prob:
+                            self._info['user_name_up'] = i[1][0][2:]
+                        else:
+                            self._info['user_name_up'] = self._info['marriage_name']
                         self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
                     elif i[1][0].startswith('名') and len(i[1][0])>2:
-                        self._info['user_name_up'] = i[1][0][1:]
+                        if i[1][1] >self._marriage_name_prob:
+                            self._info['user_name_up'] = i[1][0][1:]
+                        else:
+                            self._info['user_name_up'] = self._info['marriage_name']
                         self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
                     elif len(i[1][0])>1:
-                        self._info['user_name_up'] = i[1][0]
+                        if i[1][1] >self._marriage_name_prob:
+                            self._info['user_name_up'] = i[1][0]
+                        else:
+                            self._info['user_name_up'] = self._info['marriage_name']
                         self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
                 if '图片模糊' not in self._info['user_name_up']:
                     continue
             if '图片模糊' in self._info['user_name_down']:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name_down'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name_down'][0])            
                 for char in self._char_user_name:
                     if char in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
                             self._info['user_name_down'] = (i[1][0][i[1][0].find(char)+len(char):]).strip()
                             self._axis['user_name_down'] = [self._axis['user_name_down'][0], y]+i[0][2]
                             break
+                if '图片模糊' not in self._info['user_name_down']:
+                    continue
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name_down'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name_down'][0])            
                 if h1/h>0.6 and w1/w>0.6:
                     if len(i[1][0])>3 and i[1][0].find('名')==1:
                         self._info['user_name_down'] = i[1][0][2:]
@@ -290,20 +299,24 @@ class OCRMarriageCard():
                     elif len(i[1][0])>1:
                         self._info['user_name_down'] = i[1][0]
                         self._axis['user_name_down'] = [self._axis['user_name_down'][0], y]+i[0][2]
+                if '图片模糊' not in self._info['user_name_down']:
+                    continue
             if '图片模糊' in self._info['user_country_up']:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_country_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_country_up'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_country_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_country_up'][0])            
                 for char in self._char_user_country:
                     if char in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
                             self._info['user_country_up'] = (i[1][0][i[1][0].find(char)+len(char):]).strip()
                             self._axis['user_country_up'] = [self._axis['user_country_up'][0], y]+i[0][2]
                             break
+                if '图片模糊' not in self._info['user_country_up']:
+                    continue
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_country_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_country_up'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_country_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_country_up'][0])            
                 if h1/h>0.6 and w1/w>0.6:
-                    if len(i[1][0])>3 and i[1][0].find('籍')==1:
+                    if len(i[1][0])>3 and (i[1][0].find('籍')==1 or i[1][0].find('箱')==1):
                         self._info['user_country_up'] = i[1][0][2:]
                         self._axis['user_country_up'] = [self._axis['user_country_up'][0], y]+i[0][2]
-                    elif i[1][0].startswith('籍') and len(i[1][0])>2:
+                    elif (i[1][0].startswith('籍') or i[1][0].startswith('箱')) and len(i[1][0])>2:
                         self._info['user_country_up'] = i[1][0][1:]
                         self._axis['user_country_up'] = [self._axis['user_country_up'][0], y]+i[0][2]
                     elif len(i[1][0])>1:
@@ -312,19 +325,21 @@ class OCRMarriageCard():
                 if '图片模糊' not in self._info['user_country_up']:
                     continue
             if '图片模糊' in self._info['user_country_down']:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_country_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_country_down'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_country_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_country_down'][0])            
                 for char in self._char_user_country:
                     if char in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
                             self._info['user_country_down'] = (i[1][0][i[1][0].find(char)+len(char):]).strip()
                             self._axis['user_country_down'] = [self._axis['user_country_down'][0], y]+i[0][2]
                             break
+                if '图片模糊' not in self._info['user_country_down']:
+                    continue
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_country_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_country_down'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_country_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_country_down'][0])            
                 if h1/h>0.6 and w1/w>0.6:
-                    if len(i[1][0])>3 and i[1][0].find('籍')==1:
+                    if len(i[1][0])>3 and (i[1][0].find('籍')==1 or i[1][0].find('箱')==1):
                         self._info['user_country_down'] = i[1][0][2:]
                         self._axis['user_country_down'] = [self._axis['user_country_down'][0], y]+i[0][2]
-                    elif i[1][0].startswith('籍') and len(i[1][0])>2:
+                    elif (i[1][0].startswith('籍') or i[1][0].startswith('箱')) and len(i[1][0])>2:
                         self._info['user_country_down'] = i[1][0][1:]
                         self._axis['user_country_down'] = [self._axis['user_country_down'][0], y]+i[0][2]
                     elif len(i[1][0])>1:
@@ -334,13 +349,13 @@ class OCRMarriageCard():
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number_up'] = i[1][0][-18:]
                     self._info['user_sex_up'] =  '男' if int(self._info['user_number_up'][16])%2 else '女'
-                    self._info['user_born_up'] = f"{self._info['user_number_up'][6:10]}年{int(self._info['user_number_up'][10:12])}月{int(self._info['user_number_up'][12:14])}日"
+                    self._info['user_born_up'] = f"{self._info['user_number_up'][6:10]}年{self._info['user_number_up'][10:12]}月{int(self._info['user_number_up'][12:14])}日"
                     continue
             if '图片模糊' in self._info['user_number_down']:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number_down'] = i[1][0][-18:]
                     self._info['user_sex_down'] =  '男' if int(self._info['user_number_down'][16])%2 else '女'
-                    self._info['user_born_down'] = f"{self._info['user_number_down'][6:10]}年{int(self._info['user_number_down'][10:12])}月{int(self._info['user_number_down'][12:14])}日"
+                    self._info['user_born_down'] = f"{self._info['user_number_down'][6:10]}年{self._info['user_number_down'][10:12]}月{int(self._info['user_number_down'][12:14])}日"
 
         
         if len(fix_x)>0:
@@ -348,6 +363,9 @@ class OCRMarriageCard():
             self._axis['marriage_name'][0] = fix_x
             self._axis['marriage_date'][0] = fix_x
             self._axis['marriage_id'][0] = fix_x
+        
+        
+        
         
         
         self._axis['user_face'] = [0,0,0,0]
@@ -373,6 +391,35 @@ class OCRMarriageCard():
                 self._axis['user_face'][2] = i[0][0][0]+(self._axis['marriage_id'][2]-self._axis['marriage_id'][0])*2.8
                 self._axis['user_face'][3] = i[0][0][1]+(self._axis['marriage_id'][3]-self._axis['marriage_id'][1])*2.5
                 break
+        for i in self._result[0]:
+            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
+            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            x = min(i[0][0][0], i[0][3][0])
+            y = min(i[0][0][1], i[0][1][1])
+            if self._info['user_sex_up'] in i[1][0]:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_sex_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_sex_up'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_sex_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_sex_up'][0])            
+                if h1/h>0.2 and w1/w>0.2:
+                    self._axis['user_sex_up'] = [self._axis['user_sex_up'][0], y]+i[0][2]
+                    continue
+            if self._info['user_born_up'] in i[1][0]:
+#                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_born_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_born_up'][1])
+#                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_born_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_born_up'][0])            
+#                 if h1/h>0.2 and w1/w>0.2:
+                self._axis['user_born_up'] = [self._axis['user_born_up'][0], y]+i[0][2]
+                continue
+            if self._info['user_sex_down'] in i[1][0]:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_sex_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_sex_down'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_sex_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_sex_down'][0])            
+                if h1/h>0.2 and w1/w>0.2:
+                    self._axis['user_sex_down'] = [self._axis['user_sex_down'][0], y]+i[0][2]
+                    continue
+            if self._info['user_born_down'] in i[1][0]:
+#                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_born_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_born_down'][1])
+#                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_born_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_born_down'][0])            
+#                 if h1/h>0.2 and w1/w>0.2:
+                self._axis['user_born_down'] = [self._axis['user_born_down'][0], y]+i[0][2]
+                
     
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]

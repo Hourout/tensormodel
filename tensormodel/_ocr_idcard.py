@@ -9,7 +9,6 @@ __all__ = ['OCRIDCard']
 class OCRIDCard():
     def __init__(self, ocr=None):
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
-        self._error = 'ok'
         self._char_name = [i+j for i in ['姓', '娃', '妇', '性', '赵', '生'] for j in ['名', '容', '吉']]
         self._char_sex = ['性别']
         self._char_nation = ['民族', '民旅', '民康', '民旗', '民路', '昆旗']
@@ -21,6 +20,7 @@ class OCRIDCard():
         
     def predict(self, image, back=True):
         self._axis = None
+        self._error = 'ok'
         if isinstance(image, str):
             image = la.image.read_image(image)
             self._image = la.image.color_convert(image)
@@ -30,7 +30,7 @@ class OCRIDCard():
         if isinstance(self._info, str):
             self._direction_transform(la.image.enhance_brightness(self._image, 0.8), back)
         if isinstance(self._info, str):
-            return self._info
+            return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
         self._axis_transform_up()
         self._axis_transform_down()
         for i in self._info:
@@ -48,6 +48,7 @@ class OCRIDCard():
                 break
 
         angle = 0
+        self._error = 'ok'
         if self._angle_down!=-1:
             angle = self._angle_down
             for i in ['user_type', 'user_organization', 'user_validity_period']:
