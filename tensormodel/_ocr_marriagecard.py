@@ -37,7 +37,7 @@ class OCRMarriageCard():
         for i in self._info:
             if '图片模糊' in self._info[i]:
                 self._temp = self._info.copy()
-                self._direction_transform(la.image.enhance_brightness(self._image, 0.8))
+                self._direction_transform(la.image.enhance_brightness(self._image, 0.6))
                 self._axis_transform_up()
                 if isinstance(self._info, str):
                     self._info = self._temp.copy()
