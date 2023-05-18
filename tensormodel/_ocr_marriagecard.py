@@ -349,13 +349,13 @@ class OCRMarriageCard():
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number_up'] = i[1][0][-18:]
                     self._info['user_sex_up'] =  '男' if int(self._info['user_number_up'][16])%2 else '女'
-                    self._info['user_born_up'] = f"{self._info['user_number_up'][6:10]}年{self._info['user_number_up'][10:12]}月{int(self._info['user_number_up'][12:14])}日"
+                    self._info['user_born_up'] = f"{self._info['user_number_up'][6:10]}年{self._info['user_number_up'][10:12]}月{self._info['user_number_up'][12:14]}日"
                     continue
             if '图片模糊' in self._info['user_number_down']:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number_down'] = i[1][0][-18:]
                     self._info['user_sex_down'] =  '男' if int(self._info['user_number_down'][16])%2 else '女'
-                    self._info['user_born_down'] = f"{self._info['user_number_down'][6:10]}年{self._info['user_number_down'][10:12]}月{int(self._info['user_number_down'][12:14])}日"
+                    self._info['user_born_down'] = f"{self._info['user_number_down'][6:10]}年{self._info['user_number_down'][10:12]}月{self._info['user_number_down'][12:14]}日"
 
         
         if len(fix_x)>0:
