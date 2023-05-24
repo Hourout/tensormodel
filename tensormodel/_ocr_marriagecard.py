@@ -151,7 +151,7 @@ class OCRMarriageCard():
                             axis_true['marriage_id'] = [x+w*5, y]+i[0][2]
                         else:
                             w = w/4
-                            axis_true['marriage_id'] = [x, y-h*0.5, x+w*16, y+h*2.5]
+                            axis_true['marriage_id'] = [x, y-h*0.5, x+w*16, y+h*3]
                         axis_dict['marriage_name'].append(([x, y-h*8, x+w*12, y-h*4.5], 0.6))
                         axis_dict['marriage_date'].append(([x, y-h*3.5, x+w*14, y-h*0.5], 0.8))
                         break
