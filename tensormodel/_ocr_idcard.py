@@ -176,6 +176,8 @@ class OCRIDCard():
                         axis_dict['user_born'].append(([x+w*3.5, y+h*4.5, x+w*18, y+h*6.25], 0.6))
                         axis_dict['user_address'].append(([x+w*3.5, y+h*6.5, x+w*21.5, y+h*11], 0.4))
                         break
+                if 'user_name' in axis_true:
+                    continue
             if 'user_sex' not in axis_true:
                 for char in self._char_sex:
                     if char in i[1][0] and len(i[1][0][i[1][0].find(char)+len(char):])<2:
@@ -195,6 +197,8 @@ class OCRIDCard():
                         axis_dict['user_born'].append(([x+w*3.5, y+h*2, x+w*17, y+h*4], 0.8))
                         axis_dict['user_address'].append(([x+w*3.5, y+h*4.5, x+w*21.5, y+h*9], 0.6))
                         break
+                if 'user_sex' in axis_true:
+                    continue
             if 'user_nation' not in axis_true:
                 for char in self._char_nation:
                     if char in i[1][0] and '男' not in i[1][0] and '女' not in i[1][0]:
@@ -211,6 +215,8 @@ class OCRIDCard():
                         axis_dict['user_born'].append(([x-w*4.5-w*i[1][0].find(char), y+h*2, x+w*9, y+h*4], 0.6))
                         axis_dict['user_address'].append(([x-w*4.5-w*i[1][0].find(char), y+h*4.5, x+w*12, y+h*9], 0.4))
                         break
+                if 'user_nation' in axis_true:
+                    continue
             if len(i[1][0]) in [9, 10, 11] and i[1][0].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日'):
                 fix_x.append(i[0][0][0])
                 x = i[0][0][0]
@@ -221,6 +227,8 @@ class OCRIDCard():
                 axis_dict['user_sex'].append(([x, y-h*2.25, x+w*0.2, y-h*0.8], 0.8))
                 axis_dict['user_nation'].append(([x+w*0.65, y-h*2.25, x+w*0.85, y-h*0.8], 0.8))
                 axis_dict['user_address'].append(([x, y+h*2, x+w*1.3, y+h*6.5], 0.8))
+                if 'user_born' in axis_true:
+                    continue
             if 'user_born' not in axis_true:
                 if '出生'==i[1][0]:
                     w = w/(len(i[1][0])+1)
@@ -231,6 +239,8 @@ class OCRIDCard():
                     axis_dict['user_sex'].append(([x+w*3.5, y-h*3, x+w*6, y-h], 0.8))
                     axis_dict['user_nation'].append(([x+w*11.5, y-h*3, x+w*15, y-h], 0.8))
                     axis_dict['user_address'].append(([x+w*3.5, y+h*1.5, x+w*21.5, y+h*5.5], 0.8))
+                if 'user_born' in axis_true:
+                    continue
             if 'user_address' not in axis_true:
                 for char in self._char_address:
                     if char in i[1][0]:
@@ -247,6 +257,8 @@ class OCRIDCard():
                         axis_dict['user_nation'].append(([x+w*11.5, y-h*5.25, x+w*15, y-h*3.5], 0.4))
                         axis_dict['user_born'].append(([x+w*3.5, y-h*2.75, x+w*18, y-h], 0.8))
                         break
+                if 'user_address' in axis_true:
+                    continue
             if 'user_number' not in axis_true:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     axis_true['user_number'] = [min(i[0][0][0], i[0][3][0]), min(i[0][0][1], i[0][1][1]), 
@@ -298,11 +310,14 @@ class OCRIDCard():
                     address += i[1][0]
                     self._axis['user_address'][3] = max(i[0][2][1], i[0][3][1])
                     fix_x.append(i[0][0][0])
+                continue
             if '图片模糊' in self._info['user_number']:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number'] = i[1][0][-18:]
                     self._info['user_sex'] =  '男' if int(self._info['user_number'][16])%2 else '女'
                     self._info['user_born'] = f"{self._info['user_number'][6:10]}年{int(self._info['user_number'][10:12])}月{int(self._info['user_number'][12:14])}日"
+                if '图片模糊' not in self._info['user_number']:
+                    continue
             if '图片模糊' in self._info['user_nation']:
                 for char in self._char_nation:
                     if char in i[1][0]:
@@ -316,6 +331,8 @@ class OCRIDCard():
                             self._axis['user_nation'] = [i[0][0][0]+(i[0][1][0]-i[0][0][0])/(len(i[1][0])+2)*(len(i[1][0])+2-len(self._info['user_nation'])), 
                                                          i[0][0][1]]+i[0][2]
                             break
+                if '图片模糊' not in self._info['user_nation']:
+                    continue
             if '图片模糊' in self._info['user_name']:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name'][0])            
