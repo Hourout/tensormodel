@@ -284,11 +284,11 @@ class OCRMarriageCard():
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['marriage_date'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['marriage_date'][0])            
                 if h1/h>0.6 and w1/w>0.6:
                     if len(i[1][0])>10 and '期' in i[1][0]:
-                        if sum([i for j in i[1][0][i[1][0].find('期')+1:].replace('年','').replace('月','').replace('日','') if j not in self._char_number])==0:
+                        if sum([1 for j in i[1][0][i[1][0].find('期')+1:].replace('年','').replace('月','').replace('日','') if j not in self._char_number])==0:
                             self._info['marriage_date'] = i[1][0][i[1][0].find('期')+1:]
                             self._axis['marriage_date'] = [self._axis['marriage_date'][0], y]+i[0][2]
                     elif len(i[1][0]) in [9, 10, 11] and i[1][0].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日'):
-                        if sum([i for j in i[1][0].replace('年','').replace('月','').replace('日','') if j not in self._char_number])==0:
+                        if sum([1 for j in i[1][0].replace('年','').replace('月','').replace('日','') if j not in self._char_number])==0:
                             self._info['marriage_date'] = i[1][0]
                             self._axis['marriage_date'] = [x, y]+i[0][2]
                             fix_x.append(i[0][0][0])
