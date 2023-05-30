@@ -3,7 +3,7 @@ from collections import defaultdict
 import paddleocr
 import linora as la
 
-__all__ = ['OCRMarriageCard_v1']
+__all__ = ['OCRMarriageCard']
 
 
 class OCRMarriageCard_v1():
