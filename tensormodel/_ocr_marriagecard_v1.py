@@ -6,7 +6,7 @@ import linora as la
 __all__ = ['OCRMarriageCard']
 
 
-class OCRMarriageCard_v1():
+class OCRMarriageCard():
     def __init__(self, ocr=None):
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
         self._keys = ['marriage_name', 'marriage_date', 'marriage_id', 
