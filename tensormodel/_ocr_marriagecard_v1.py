@@ -18,6 +18,7 @@ class OCRMarriageCard():
         self._char_marriage_id = ['结婚证字号']
         self._char_user_name = ['姓名']
         self._char_user_country = ['国籍', '国箱']
+        self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
     def predict(self, image):
         self._marriage_name_prob = 0
@@ -283,12 +284,14 @@ class OCRMarriageCard():
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['marriage_date'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['marriage_date'][0])            
                 if h1/h>0.6 and w1/w>0.6:
                     if len(i[1][0])>10 and '期' in i[1][0]:
-                        self._info['marriage_date'] = i[1][0][i[1][0].find('期')+1:]
-                        self._axis['marriage_date'] = [self._axis['marriage_date'][0], y]+i[0][2]
-                    elif len(i[1][0])==11 and i[1][0].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日'):
-                        self._info['marriage_date'] = i[1][0]
-                        self._axis['marriage_date'] = [x, y]+i[0][2]
-                        fix_x.append(i[0][0][0])
+                        if sum([i for j in i[1][0][i[1][0].find('期')+1:].replace('年','').replace('月','').replace('日','') if j not in self._char_number])==0:
+                            self._info['marriage_date'] = i[1][0][i[1][0].find('期')+1:]
+                            self._axis['marriage_date'] = [self._axis['marriage_date'][0], y]+i[0][2]
+                    elif len(i[1][0]) in [9, 10, 11] and i[1][0].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日'):
+                        if sum([i for j in i[1][0].replace('年','').replace('月','').replace('日','') if j not in self._char_number])==0:
+                            self._info['marriage_date'] = i[1][0]
+                            self._axis['marriage_date'] = [x, y]+i[0][2]
+                            fix_x.append(i[0][0][0])
                     elif len(i[1][0])==10 and i[1][0].find('-')==4 and i[1][0][-3]=='-':
                         self._info['marriage_date'] = f'{i[1][0][:4]}年{i[1][0][5:7]}月{i[1][0][-2:]}日'
                         self._axis['marriage_date'] = [x, y]+i[0][2]
