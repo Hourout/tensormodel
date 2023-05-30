@@ -20,7 +20,7 @@ class OCRIDCard():
                       'user_number', 'user_face', 'user_card']
         
     def predict(self, image, back=True):
-        self._axis = None
+        self._axis = defaultdict(list)
         self._error = 'ok'
         if isinstance(image, str):
             self._image = cv2.imread(image)
