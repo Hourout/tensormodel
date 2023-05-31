@@ -14,7 +14,7 @@ class OCRIDCard():
         self._char_sex = ['性别']
         self._char_nation = ['民族', '民旅', '民康', '民旗', '民路', '昆旗']
         self._char_address = ['住址', '佳址', '主址', '住 址', '往址', '生址', '佳道']
-        self._char_organization = ['签发机关', '鑫发机关', '金设机关', '签发物关']
+        self._char_organization = ['签发机关', '鑫发机关', '金设机关', '签发物关', '盛发机关']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         self._keys = ['user_name', 'user_sex', 'user_nation', 'user_born', 'user_address', 
                       'user_number', 'user_face', 'user_card']
@@ -332,6 +332,13 @@ class OCRIDCard():
                 if '年' in i[1][0] and '月' in i[1][0] and i[1][0].endswith('日'):
                     self._info['user_born'] = i[1][0][max(0, i[1][0].find('年')-4):]
                     continue
+            if '图片模糊' in self._info['user_number']:
+                if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
+                    self._info['user_number'] = i[1][0][-18:]
+                    self._info['user_sex'] =  '男' if int(i[1][0][-18:][16])%2 else '女'
+                    self._info['user_born'] = f"{i[1][0][-18:][6:10]}年{int(i[1][0][-18:][10:12])}月{int(i[1][0][-18:][12:14])}日"
+                if '图片模糊' not in self._info['user_number']:
+                    continue
             if '图片模糊' in self._info['user_address'] and 'user_address' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_address'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_address'][0])
@@ -353,13 +360,7 @@ class OCRIDCard():
                         self._axis['user_address'][3] = max(i[0][2][1], i[0][3][1])
                         fix_x.append(i[0][0][0])
                     continue
-            if '图片模糊' in self._info['user_number']:
-                if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
-                    self._info['user_number'] = i[1][0][-18:]
-                    self._info['user_sex'] =  '男' if int(i[1][0][-18:][16])%2 else '女'
-                    self._info['user_born'] = f"{i[1][0][-18:][6:10]}年{int(i[1][0][-18:][10:12])}月{int(i[1][0][-18:][12:14])}日"
-                if '图片模糊' not in self._info['user_number']:
-                    continue
+            
             
             
         if '图片模糊' in self._info['user_address'] and address!='':
@@ -476,6 +477,10 @@ class OCRIDCard():
                         elif len(temp) in [8, 9, 10, 11]:
                             self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{int(temp[:4])+20}.{temp[4:6]}.{temp[6:8]}'
                     if '图片模糊' not in self._info['user_validity_period']:
+                        if '长期' not in self._info['user_validity_period']:
+                            if abs(int(self._info['user_validity_period'][:4])-int(self._info['user_validity_period'][11:15]))>30:
+                                self._info['user_validity_period'] = '图片模糊:未识别出有效期限'
+                                continue
                         break
     
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
@@ -534,5 +539,9 @@ class OCRIDCard():
             return 'Environment check ok.'
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
+
+
+
+
 
 
