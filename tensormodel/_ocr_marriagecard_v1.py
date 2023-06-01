@@ -67,13 +67,12 @@ class OCRMarriageCard():
         return {'data':self._info, 'axis':self._axis, 'angle':angle, 'error':self._error}
         
     def _direction_transform(self, image):
-        state = False
-        self._result = []
         if self._angle!=-1:
             image1 = la.image.rotate(image, self._angle, expand=True)
             image1 = la.image.image_to_array(image1)
             self._result = self.ocr.ocr(image1, cls=False)
         else:
+            self._result = []
             for angle in [0, 90, 180, 270]:
                 if angle>0:
                     image1 = la.image.rotate(image, angle, expand=True)
@@ -81,26 +80,23 @@ class OCRMarriageCard():
                 else:
                     image1 = la.image.image_to_array(image)
                 result = self.ocr.ocr(image1, cls=False)
-
-                if not state:
-                    rank = [0,0,0,0,0]
-                    for r, i in enumerate(result[0], start=1):
-                        if '持证人' in i[1][0]:
-                            rank[0] = r
-                        elif '登记日期' in i[1][0]:
-                            rank[1] = r
-                        elif '结婚证字号'in i[1][0]:
-                            rank[2] = r
-                        elif '备注' in i[1][0]:
-                            rank[3] = r
-                        elif '身份证件号' in i[1][0]:
-                            rank[4] = r
-                    rank = [i for i in rank if i>0]
-                    if rank==sorted(rank) and len(rank)>1:
-                        state = True
-                        self._result = result.copy()
-                        self._angle = angle
-                        break
+                rank = [0,0,0,0,0]
+                for r, i in enumerate(result[0], start=1):
+                    if '持证人' in i[1][0]:
+                        rank[0] = r
+                    elif '登记日期' in i[1][0]:
+                        rank[1] = r
+                    elif '结婚证字号'in i[1][0]:
+                        rank[2] = r
+                    elif '备注' in i[1][0]:
+                        rank[3] = r
+                    elif '身份证件号' in i[1][0]:
+                        rank[4] = r
+                rank = [i for i in rank if i>0]
+                if rank==sorted(rank) and len(rank)>1:
+                    self._result = result.copy()
+                    self._angle = angle
+                    break
         
         self._info = {}
         if self._angle!=-1:
