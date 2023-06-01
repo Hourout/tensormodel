@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import cv2
 import paddleocr
 import linora as la
 
@@ -17,33 +18,46 @@ class OCRMarriageCard():
         self._char_marriage_date = ['登记日期']
         self._char_marriage_id = ['结婚证字号']
         self._char_user_name = ['姓名']
-        self._char_user_country = ['国籍', '国箱']
+        self._char_user_country = ['国籍', '国箱', '国馨']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
     def predict(self, image):
         self._marriage_name_prob = 0
         self._axis = None
         self._error = 'ok'
-        self._image = image
-        
+        self._angle = 0
+        if isinstance(image, str):
+            self._image = cv2.imread(image)
+            self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
+            self._image = la.image.array_to_image(self._image)
+#             image = la.image.read_image(image)
+#             self._image = la.image.color_convert(image)
+        else:
+            self._image = image
         self._direction_transform(self._image)
         if isinstance(self._info, str):
-            self._direction_transform(self._image, 0.8)
+            self._direction_transform(la.image.enhance_brightness(self._image, 0.8))
         if isinstance(self._info, str):
             return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
         self._axis_transform_up()
         for i in self._info:
             if '图片模糊' in self._info[i]:
-                self._temp = self._info.copy()
-                self._direction_transform(self._image, 0.6)
+                self._temp_info = self._info.copy()
+                self._temp_axis = self._axis.copy()
+                self._direction_transform(la.image.enhance_brightness(self._image, 0.6))
                 self._axis_transform_up()
                 if isinstance(self._info, str):
-                    self._info = self._temp.copy()
+                    self._info = self._temp_info.copy()
+                    self._axis = self._temp_axis.copy()
                 else:
-                    for j in self._temp:
-                        if '图片模糊' not in self._temp[j]:
-                            self._info[j] = self._temp[j]
+                    for j in self._temp_info:
+                        if '图片模糊' not in self._temp_info[j]:
+                            self._info[j] = self._temp_info[j]
+                    for j in self._temp_axis:
+                        if j not in self._axis:
+                            self._axis[j] = self._temp_axis[j]
                 break
+        
         self._error = 'ok'
         for i in self._info:
             if '图片模糊' in self._info[i]:
@@ -51,21 +65,17 @@ class OCRMarriageCard():
                 break
         return {'data':self._info, 'axis':self._axis, 'angle':self._angle, 'error':self._error}
         
-    def _direction_transform(self, image, aug=0):
+    def _direction_transform(self, image):
         state = False
         self._result = []
         for angle in [0, 90, 180, 270]:
-            if angle==0 and isinstance(image, str):
-                result = self.ocr.ocr(image, cls=False)
+            if angle>0:
+                image1 = la.image.rotate(image, angle, expand=True)
+                image1 = la.image.image_to_array(image1)
             else:
-                image1 = la.image.read_image(image)
-                image1 = la.image.color_convert(image1)
-                if aug!=0:
-                    image1 = la.image.enhance_brightness(image1, aug)
-                if angle>0:
-                    image1 = la.image.rotate(image1, angle, expand=True)
-                image1 = la.image.image_to_array(image1)       
-                result = self.ocr.ocr(image1, cls=False)
+                image1 = la.image.image_to_array(image)
+            result = self.ocr.ocr(image1, cls=False)
+            
             if not state:
                 rank = [0,0,0,0,0]
                 for r, i in enumerate(result[0], start=1):
@@ -543,8 +553,7 @@ class OCRMarriageCard():
     
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
         if image is None:
-            image = la.image.read_image(self._image)
-            image = la.image.color_convert(image)
+            image = self._image.copy()
         angle = self._angle if axis is None else axis['angle']
         axis = self._axis if axis is None else axis['axis']
 
@@ -600,6 +609,4 @@ class OCRMarriageCard():
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
         
-
-
 

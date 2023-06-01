@@ -24,6 +24,7 @@ class OCRIDCard():
         self._error = 'ok'
         if isinstance(image, str):
             self._image = cv2.imread(image)
+            self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
             self._image = la.image.array_to_image(self._image)
 #             image = la.image.read_image(image)
 #             self._image = la.image.color_convert(image)
