@@ -59,8 +59,7 @@ class OCRMarriageCard():
                 break
         
         self._error = 'ok'
-        if self._angle==-1:
-            angle = 0
+        angle = 0 if self._angle==-1 else self._angle
         for i in self._info:
             if '图片模糊' in self._info[i]:
                 self._error = self._info[i]
@@ -104,7 +103,7 @@ class OCRMarriageCard():
                         break
         
         self._info = {}
-        if state:
+        if self._angle!=-1:
             self._info['marriage_name'] = '图片模糊:未识别出持证人'
             self._info['marriage_date'] = '图片模糊:未识别出登记日期'
             self._info['marriage_id'] = '图片模糊:未识别出结婚证字号'
@@ -128,7 +127,7 @@ class OCRMarriageCard():
         fix_x = []
         axis_true = defaultdict(list)
         axis_dict = defaultdict(list)
-        
+
         step = 0
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
@@ -139,10 +138,8 @@ class OCRMarriageCard():
                 for char in self._char_marriage_name:
                     if char in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
-#                             self._info['marriage_name'] = (i[1][0][i[1][0].find(char)+len(char):]).strip()
                             w = w/(len(i[1][0])+2)
                             axis_true['marriage_name'] = [x+w*3, y]+i[0][2]
-#                             self._marriage_name_prob = i[1][1]
                         else:
                             w = w/(len(i[1][0])+2)
                             axis_true['marriage_name'] = [x, y-h*0.5, x+w*12, y+h*3.5]
@@ -271,14 +268,11 @@ class OCRMarriageCard():
                                     sum([j[0][1]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
-#                 else:
-#                     self._error = '图片模糊:未识别出有效信息'
-#                     return 0
+
         if self._axis is None:
             self._axis = axis_true.copy()
         for i in axis_true:
             axis_true[i] = tuple(axis_true[i])
-        
         step = 0
         step_name = 0
         for i in self._result[0]:
@@ -616,4 +610,6 @@ class OCRMarriageCard():
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
         
+
+
 

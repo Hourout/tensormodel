@@ -154,7 +154,7 @@ class OCRIDCard():
                         break
         
         self._info = {}
-        if state_up:
+        if self._angle_up!=-1:
             self._info['user_name'] = '图片模糊:未识别出姓名'
             self._info['user_sex'] = '图片模糊:未识别出性别'
             self._info['user_nation'] = '图片模糊:未识别出民族'
@@ -162,15 +162,15 @@ class OCRIDCard():
             self._info['user_address'] = '图片模糊:未识别出地址'
             self._info['user_number'] = '图片模糊:未识别出身份证号码'
         if back:
-            if state_down:
+            if self._angle_down!=-1:
                 self._info['user_type'] = '居民身份证'
                 self._info['user_organization'] = '图片模糊:未识别出签发机关'
                 self._info['user_validity_period'] = '图片模糊:未识别出有效期限'
-            if state_up == state_down == False:
+            if self._angle_up == self._angle_down == -1:
                 self._info = '图片模糊:未识别出有效信息'
                 self._error = '图片模糊:未识别出有效信息'
         else:
-            if not state_up:
+            if self._angle_up == -1:
                 self._info = '图片模糊:未识别出有效信息'
                 self._error = '图片模糊:未识别出有效信息'
     
