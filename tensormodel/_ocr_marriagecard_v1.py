@@ -167,8 +167,10 @@ class OCRMarriageCard():
             if 'user_name_up' not in axis_true:
                 for char in self._char_user_name:
                     if char in i[1][0]:
-                        if len(i[1][0])>2:
+                        if len(i[1][0])>3:
                             axis_true['user_name_up'] = [x+w*0.2, y-h]+i[0][2]
+                        elif len(i[1][0])>2:
+                            axis_true['user_name_up'] = [x+w*0.5, y-h, x+w*2.5, y+h*2]
                         else:
                             axis_true['user_name_up'] = [x+w*1.2, y-h, x+w*4.5, y+h*2]
                         break
@@ -205,8 +207,10 @@ class OCRMarriageCard():
             if 'user_name_down' not in axis_true:
                 for char in self._char_user_name:
                     if char in i[1][0]:
-                        if len(i[1][0])>2:
+                        if len(i[1][0])>3:
                             axis_true['user_name_down'] = [x+w*0.2, y-h]+i[0][2]
+                        elif len(i[1][0])>2:
+                            axis_true['user_name_down'] = [x+w*0.5, y-h, x+w*2.5, y+h*2]
                         else:
                             axis_true['user_name_down'] = [x+w*1.2, y-h, x+w*4.5, y+h*2]
                         break
@@ -259,7 +263,11 @@ class OCRMarriageCard():
             axis_true[i] = tuple(axis_true[i])
         
         step = 0
+        step_name = 0
         for i in self._result[0]:
+            for j in ['国籍', '出生日期', '身份证件号']:
+                if j in i[1][0]:
+                    step_name = 1
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
             x = min(i[0][0][0], i[0][3][0])
@@ -311,7 +319,7 @@ class OCRMarriageCard():
                         fix_x.append(i[0][0][0])
                 if '图片模糊' not in self._info['marriage_id']:
                     continue
-            if '图片模糊' in self._info['user_name_up'] and 'user_name_up' in axis_true:
+            if '图片模糊' in self._info['user_name_up'] and 'user_name_up' in axis_true and step_name==0:
                 for char in self._char_user_name:
                     if char in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
@@ -403,7 +411,7 @@ class OCRMarriageCard():
                     elif i[1][0].startswith('名') and len(i[1][0])>2:
                         self._info['user_name_down'] = i[1][0][1:]
                         self._axis['user_name_down'] = [self._axis['user_name_down'][0], y]+i[0][2]
-                    elif len(i[1][0])>1:
+                    elif len(i[1][0])>1 and sum([1 for char in self._char_user_name if i[1][0].startswith(char)])==0:
                         self._info['user_name_down'] = i[1][0]
                         self._axis['user_name_down'] = [self._axis['user_name_down'][0], y]+i[0][2]
                 if '图片模糊' not in self._info['user_name_down']:
@@ -443,6 +451,8 @@ class OCRMarriageCard():
                     self._info['user_born_down'] = f"{i[1][0][:18][6:10]}年{i[1][0][:18][10:12]}月{i[1][0][:18][12:14]}日"
 
         
+        if self._info['marriage_id'][0]=='1':
+            self._info['marriage_id'] = 'J'+self._info['marriage_id'][1:]
         if '图片模糊' in self._info['user_name_up'] and '图片模糊' not in self._info['marriage_name']:
             self._info['user_name_up'] = self._info['marriage_name']
         if '图片模糊' in self._info['user_country_up']:
@@ -450,8 +460,9 @@ class OCRMarriageCard():
         if '图片模糊' in self._info['user_country_down']:
             self._info['user_country_down'] = '中国'
         if '图片模糊' in self._info['user_sex_down'] and '图片模糊' in self._info['user_sex_up']:
-            self._info['user_sex_down'] = '男'
-            self._info['user_sex_up'] = '女'
+            sex = [j for i in self._result[0] for j in ['男', '女'] if j in i[1][0]]
+            self._info['user_sex_down'] = '男' if len(sex)<2 else sex[-1]
+            self._info['user_sex_up'] = '女' if len(sex)<2 else sex[-2]
         elif '图片模糊' in self._info['user_sex_down'] and '图片模糊' not in self._info['user_sex_up']:
             self._info['user_sex_down'] = '女' if self._info['user_sex_up']=='男' else '男'
         elif '图片模糊' not in self._info['user_sex_down'] and '图片模糊' in self._info['user_sex_up']:
@@ -587,6 +598,8 @@ class OCRMarriageCard():
             return 'Environment check ok.'
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
+
+        
 
 
 
