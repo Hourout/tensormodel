@@ -22,6 +22,9 @@ class OCRIDCard():
     def predict(self, image, back=True):
         self._axis = defaultdict(list)
         self._error = 'ok'
+        self._angle_up = -1
+        self._angle_down = -1
+        
         if isinstance(image, str):
             self._image = cv2.imread(image)
             self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
@@ -78,57 +81,77 @@ class OCRIDCard():
         state_down = False
         self._result_up = []
         self._result_down = []
-        self._angle_up = -1
-        self._angle_down = -1
-        for angle in [0, 90, 180, 270]:
-            if angle>0:
-                image1 = la.image.rotate(image, angle, expand=True)
-                image1 = la.image.image_to_array(image1)
-            else:
-                image1 = la.image.image_to_array(image)
-            result = self.ocr.ocr(image1, cls=False)
-            
-            if not state_up:
-                rank = [0,0,0,0,0]
-                for r, i in enumerate(result[0], start=1):
-                    if sum([1 for char in self._char_name if char in i[1][0]]):
-                        rank[0] = r
-                    elif sum([1 for char in self._char_sex if char in i[1][0]]):
-                        rank[1] = r
-                    elif sum([1 for char in self._char_nation if char in i[1][0]]):
-                        rank[1] = r
-                    elif '出生' in i[1][0]:
-                        rank[2] = r
-                    elif len(i[1][0]) in [9, 10, 11] and i[1][0].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日'):
-                        rank[2] = r
-                    elif sum([1 for char in self._char_address if char in i[1][0]]) or '址' in i[1][0]:
-                        rank[3] = r
-                    elif '号码' in i[1][0] or '公民' in i[1][0]:
-                        rank[4] = r
-                rank = [i for i in rank if i>0]
-                if rank==sorted(rank) and len(rank)>1:
-                    state_up = True
-                    self._result_up = result.copy()
-                    self._angle_up = angle
+        
+        if self._angle_up!=-1 and self._angle_down==-1:
+            image1 = la.image.rotate(image, self._angle_up, expand=True)
+            image1 = la.image.image_to_array(image1)
+            self._result_up = self.ocr.ocr(image1, cls=False)
+        elif self._angle_up==-1 and self._angle_down!=-1:
+            image1 = la.image.rotate(image, self._angle_down, expand=True)
+            image1 = la.image.image_to_array(image1)
+            self._result_down = self.ocr.ocr(image1, cls=False)
+        elif self._angle_up!=-1 and self._angle_down!=-1 and self._angle_up==self._angle_down:
+            image1 = la.image.rotate(image, self._angle_down, expand=True)
+            image1 = la.image.image_to_array(image1)
+            self._result_up = self.ocr.ocr(image1, cls=False)
+            self._result_down = self._result_up.copy()
+        elif self._angle_up!=-1 and self._angle_down!=-1 and self._angle_up!=self._angle_down:
+            image1 = la.image.rotate(image, self._angle_up, expand=True)
+            image1 = la.image.image_to_array(image1)
+            self._result_up = self.ocr.ocr(image1, cls=False)
+            image1 = la.image.rotate(image, self._angle_down, expand=True)
+            image1 = la.image.image_to_array(image1)
+            self._result_down = self.ocr.ocr(image1, cls=False)
+        else:
+            for angle in [0, 90, 180, 270]:
+                if angle>0:
+                    image1 = la.image.rotate(image, angle, expand=True)
+                    image1 = la.image.image_to_array(image1)
+                else:
+                    image1 = la.image.image_to_array(image)
+                result = self.ocr.ocr(image1, cls=False)
 
-            if back:
-                if not state_down:
-                    rank = [0,0]
+                if not state_up:
+                    rank = [0,0,0,0,0]
                     for r, i in enumerate(result[0], start=1):
-                        if '中华人民共和国' in i[1][0] or '居民身份证' in i[1][0]:
+                        if sum([1 for char in self._char_name if char in i[1][0]]):
                             rank[0] = r
-                        elif '机关' in i[1][0] or '有效期限' in i[1][0]:
+                        elif sum([1 for char in self._char_sex if char in i[1][0]]):
                             rank[1] = r
-                    if rank[1]>rank[0]:
-                        state_down = True
-                        self._result_down = result.copy()
-                        self._angle_down = angle
-                        
-                if state_down and state_up:
-                    break
-            else:
-                if state_up:
-                    break
+                        elif sum([1 for char in self._char_nation if char in i[1][0]]):
+                            rank[1] = r
+                        elif '出生' in i[1][0]:
+                            rank[2] = r
+                        elif len(i[1][0]) in [9, 10, 11] and i[1][0].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日'):
+                            rank[2] = r
+                        elif sum([1 for char in self._char_address if char in i[1][0]]) or '址' in i[1][0]:
+                            rank[3] = r
+                        elif '号码' in i[1][0] or '公民' in i[1][0]:
+                            rank[4] = r
+                    rank = [i for i in rank if i>0]
+                    if rank==sorted(rank) and len(rank)>1:
+                        state_up = True
+                        self._result_up = result.copy()
+                        self._angle_up = angle
+
+                if back:
+                    if not state_down:
+                        rank = [0,0]
+                        for r, i in enumerate(result[0], start=1):
+                            if '中华人民共和国' in i[1][0] or '居民身份证' in i[1][0]:
+                                rank[0] = r
+                            elif '机关' in i[1][0] or '有效期限' in i[1][0]:
+                                rank[1] = r
+                        if rank[1]>rank[0]:
+                            state_down = True
+                            self._result_down = result.copy()
+                            self._angle_down = angle
+
+                    if state_down and state_up:
+                        break
+                else:
+                    if state_up:
+                        break
         
         self._info = {}
         if state_up:
