@@ -10,12 +10,12 @@ __all__ = ['OCRHouseholdCard']
 class OCRHouseholdCard():
     def __init__(self, ocr=None):
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
-        self._keys = ['household_type', 'household_name', 'household_id', 
-                      'household_address']
+        self._keys = []
         self._char_household_type = ['户别']
         self._char_household_name = ['户主姓名']
         self._char_household_id = ['户号']
         self._char_household_address = ['地址']
+        self._char_register_name = ['姓名']
 #         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
     def predict(self, image):
@@ -36,13 +36,13 @@ class OCRHouseholdCard():
             self._direction_transform(la.image.enhance_brightness(self._image, 0.8))
         if isinstance(self._info, str):
             return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
-        self._axis_transform_up()
+        self._axis_transform()
         for i in self._info:
             if '图片模糊' in self._info[i]:
                 self._temp_info = self._info.copy()
                 self._temp_axis = self._axis.copy()
                 self._direction_transform(la.image.enhance_brightness(self._image, 0.6))
-                self._axis_transform_up()
+                self._axis_transform()
                 if isinstance(self._info, str):
                     self._info = self._temp_info.copy()
                     self._axis = self._temp_axis.copy()
@@ -77,6 +77,7 @@ class OCRHouseholdCard():
                 else:
                     image1 = la.image.image_to_array(image)
                 result = self.ocr.ocr(image1, cls=False)
+                
                 rank = [0,0,0,0,0]
                 for r, i in enumerate(result[0], start=1):
                     if '注意事项' in i[1][0]:
@@ -94,6 +95,42 @@ class OCRHouseholdCard():
                     self._result = result.copy()
                     self._angle = angle
                     self._mode = 'shouye'
+                    self._keys = ['household_type', 'household_name', 'household_id', 'household_address']
+                    break
+                    
+                rank = [0,0,0,0,0,0,0,0,0,0]
+                for r, i in enumerate(result[0], start=1):
+                    if '登记事项变更' in i[1][0] or '更正记载' in i[1][0]:
+                        rank[0] = r
+                    elif '常住人口登记卡' in i[1][0]:
+                        rank[1] = r
+                    elif '姓名' in i[1][0]:
+                        rank[2] = r
+                    elif '曾用名' in i[1][0] or '性别' in i[1][0]:
+                        rank[3] = r
+                    elif '出生地' in i[1][0] or '民族' in i[1][0]:
+                        rank[4] = r
+                    elif '籍贯' in i[1][0] or '出生日期' in i[1][0]:
+                        rank[5] = r
+                    elif '住址' in i[1][0] or '宗教信仰' in i[1][0]:
+                        rank[6] = r
+                    elif '身高' in i[1][0] or '血型' in i[1][0]:
+                        rank[7] = r
+                    elif '文化程度' in i[1][0] or '婚姻状况' in i[1][0]:
+                        rank[8] = r
+                    elif '服务处所' in i[1][0]:
+                        rank[9] = r
+                rank = [i for i in rank if i>0]
+                if rank==sorted(rank) and len(rank)>1:
+                    self._result = result.copy()
+                    self._angle = angle
+                    self._mode = 'neirong'
+                    self._keys = ['register_name', 'register_previous_name', 'register_birthplace', 
+                                  'register_nativeplace', 'register_relation', 'register_sex', 
+                                  'register_nation', 'register_born', 'register_number',
+                                  'register_education', 'register_service_office', 'register_belief', 
+                                  'register_height', 'register_height', 'register_blood', 
+                                  'register_marriage', 'register_military', 'register_date']
                     break
         
         self._info = {}
@@ -102,13 +139,251 @@ class OCRHouseholdCard():
             self._info['household_name'] = '图片模糊:未识别出户主'
             self._info['household_id'] = '图片模糊:未识别出户号'
             self._info['household_address'] = '图片模糊:未识别出住址'
+        elif self._mode == 'neirong':
+            self._info['register_name'] = '图片模糊:未识别出姓名'
+            self._info['register_relation'] = '图片模糊:未识别出与户主关系'
+            self._info['register_previous_name'] = '图片模糊:未识别出曾用名'
+            self._info['register_sex'] = '图片模糊:未识别出性别'
+            self._info['register_birthplace'] = '图片模糊:未识别出出生地'
+            self._info['register_nation'] = '图片模糊:未识别出民族'
+            self._info['register_nativeplace'] = '图片模糊:未识别出籍贯'
+            self._info['register_born'] = '图片模糊:未识别出出生日期'
+            self._info['register_belief'] = '图片模糊:未识别出宗教信仰'
+            self._info['register_number'] = '图片模糊:未识别出身份证号'
+            self._info['register_height'] = '图片模糊:未识别出身高'
+            self._info['register_blood'] = '图片模糊:未识别出血型'
+            self._info['register_education'] = '图片模糊:未识别出文化程度'
+            self._info['register_marriage'] = '图片模糊:未识别出婚姻状况'
+            self._info['register_military'] = '图片模糊:未识别出兵役状况'
+            self._info['register_service_office'] = '图片模糊:未识别出服务处所'
+            self._info['register_address'] = '图片模糊:未识别出何时迁入本住址'
+            self._info['register_date'] = '图片模糊:未识别出登记日期'
         else:
             self._info = '图片模糊:未识别出有效信息'
             self._error = '图片模糊:未识别出有效信息'
     
-    def _axis_transform_up(self):
+    def _axis_transform(self):
         if self._mode == 'shouye':
             self._axis_transform_shouye()
+        elif self._mode == 'neirong':
+            self._axis_transform_neirong()
+    
+    def _axis_transform_neirong(self):
+        if len(self._result)==0:
+            return 0
+        fix_x = []
+        axis_true = defaultdict(list)
+        axis_dict = defaultdict(list)
+        
+        for i in self._result[0]:
+            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
+            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            x = min(i[0][0][0], i[0][3][0])
+            y = min(i[0][0][1], i[0][1][1])
+            if '常住人口登记卡' == i[1][0]:
+                h = h*1.21
+                w = w/7
+                axis_dict['register_name'].append(([x-w*2, y+h, x+w*4, y+h*2], 0.8))
+                axis_dict['register_previous_name'].append(([x-w*2, y+h*2, x+w*4, y+h*3], 0.8))
+                axis_dict['register_birthplace'].append(([x-w*2, y+h*3, x+w*4, y+h*4], 0.8))
+                axis_dict['register_nativeplace'].append(([x-w*2, y+h*4, x+w*4, y+h*5], 0.8))
+                axis_dict['register_relation'].append(([x+w*8, y+h, x+w*13, y+h*2], 0.8))
+                axis_dict['register_sex'].append(([x+w*8, y+h*2, x+w*13, y+h*3], 0.8))
+                axis_dict['register_nation'].append(([x+w*8, y+h*3, x+w*13, y+h*4], 0.8))
+                axis_dict['register_born'].append(([x+w*8, y+h*4, x+w*13, y+h*5], 0.8))
+                axis_dict['register_number'].append(([x-w*2, y+h*6, x+w*4, y+h*7], 0.6))
+                axis_dict['register_education'].append(([x-w*2, y+h*7, x+w*2, y+h*8], 0.6))
+                axis_dict['register_service_office'].append(([x-w*2, y+h*8, x+w*6, y+h*9], 0.6))
+                axis_dict['register_belief'].append(([x+w*9, y+h*5, x+w*13, y+h*6], 0.6))
+                axis_dict['register_height'].append(([x+w*7, y+h*6, x+w*9, y+h*7], 0.6))
+                axis_dict['register_blood'].append(([x+w*11, y+h*6, x+w*13, y+h*7], 0.6))
+                axis_dict['register_marriage'].append(([x+w*4.5, y+h*7, x+w*6, y+h*8], 0.6))
+                axis_dict['register_military'].append(([x+w*9, y+h*7, x+w*13, y+h*8], 0.6))
+                axis_dict['register_date'].append(([x+w*8.5, y+h*11, x+w*13, y+h*12], 0.6))
+                continue
+#             if 'register_name' not in axis_true:
+#                 for char in self._char_register_name:
+#                     if char == i[1][0]:
+#                         w = w/(len(i[1][0])+5)
+#                         h = h*1.2
+#                         axis_true['register_name'] = [x+w*7, y, x+w*19, y+h]
+#                         axis_dict['register_previous_name'].append(([x+w*7, y+h, x+w*19, y+h*2], 0.8))
+#                         axis_dict['register_birthplace'].append(([x+w*7, y+h*2, x+w*19, y+h*3], 0.8))
+#                         axis_dict['register_nativeplace'].append(([x+w*7, y+h*3, x+w*19, y+h*4], 0.8))
+#                         axis_dict['register_relation'].append(([x+w*27, y, x+w*37, y+h], 0.8))
+#                         axis_dict['register_sex'].append(([x+w*27, y+h, x+w*37, y+h*2], 0.8))
+#                         axis_dict['register_nation'].append(([x+w*27, y+h*2, x+w*37, y+h*3], 0.8))
+#                         axis_dict['register_born'].append(([x+w*27, y+h*3, x+w*37, y+h*4], 0.8))
+#                         break
+#                 if 'register_name' in axis_true:
+#                     continue
+        
+        for i in self._keys:
+            if i not in axis_true:
+                if i in axis_dict:
+                    weight = sum([j[1] for j in axis_dict[i]])
+                    axis_true[i] = [sum([j[0][0]*j[1] for j in axis_dict[i]])/weight,
+                                    sum([j[0][1]*j[1] for j in axis_dict[i]])/weight,
+                                    sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
+                                    sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
+
+        if self._axis is None:
+            self._axis = axis_true.copy()
+        for i in axis_true:
+            axis_true[i] = tuple(axis_true[i])
+        for i in self._result[0]:
+            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
+            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            x = min(i[0][0][0], i[0][3][0])
+            y = min(i[0][0][1], i[0][1][1])
+            if '图片模糊' in self._info['register_name'] and 'register_name' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_name'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_name'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_name'] = i[1][0]
+                    self._axis['register_name'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_name']:
+                    continue
+            if '图片模糊' in self._info['register_relation'] and 'register_relation' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_relation'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_relation'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_relation'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_relation'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_relation'] = i[1][0]
+                    self._axis['register_relation'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_relation']:
+                    continue
+            if '图片模糊' in self._info['register_previous_name'] and 'register_previous_name' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_previous_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_previous_name'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_previous_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_previous_name'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_previous_name'] = i[1][0]
+                    self._axis['register_previous_name'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_previous_name']:
+                    continue
+            if '图片模糊' in self._info['register_sex'] and 'register_sex' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_sex'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_sex'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_sex'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_sex'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_sex'] = i[1][0]
+                    self._axis['register_sex'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_sex']:
+                    continue
+            if '图片模糊' in self._info['register_birthplace'] and 'register_birthplace' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_birthplace'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_birthplace'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_birthplace'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_birthplace'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_birthplace'] = i[1][0]
+                    self._axis['register_birthplace'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_birthplace']:
+                    continue
+            if '图片模糊' in self._info['register_nation'] and 'register_nation' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_nation'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_nation'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_nation'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_nation'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_nation'] = i[1][0]
+                    self._axis['register_nation'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_nation']:
+                    continue
+            if '图片模糊' in self._info['register_nativeplace'] and 'register_nativeplace' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_nativeplace'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_nativeplace'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_nativeplace'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_nativeplace'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_nativeplace'] = i[1][0]
+                    self._axis['register_nativeplace'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_nativeplace']:
+                    continue
+            if '图片模糊' in self._info['register_born'] and 'register_born' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_born'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_born'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_born'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_born'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_born'] = i[1][0]
+                    self._axis['register_born'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_born']:
+                    continue
+            if '图片模糊' in self._info['register_belief'] and 'register_belief' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_belief'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_belief'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_belief'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_belief'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_belief'] = i[1][0]
+                    self._axis['register_belief'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_belief']:
+                    continue
+            if '图片模糊' in self._info['register_number'] and 'register_number' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_number'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_number'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_number'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_number'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_number'] = i[1][0]
+                    self._axis['register_number'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_number']:
+                    continue
+            if '图片模糊' in self._info['register_height'] and 'register_height' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_height'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_height'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_height'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_height'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_height'] = i[1][0]
+                    self._axis['register_height'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_height']:
+                    continue
+            if '图片模糊' in self._info['register_blood'] and 'register_blood' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_blood'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_blood'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_blood'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_blood'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_blood'] = i[1][0].replace('0', 'o')
+                    self._axis['register_blood'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_blood']:
+                    continue
+            if '图片模糊' in self._info['register_education'] and 'register_education' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_education'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_education'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_education'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_education'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_education'] = i[1][0]
+                    self._axis['register_education'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_education']:
+                    continue 
+            if '图片模糊' in self._info['register_marriage'] and 'register_marriage' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_marriage'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_marriage'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_marriage'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_marriage'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_marriage'] = i[1][0]
+                    self._axis['register_marriage'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_marriage']:
+                    continue
+            if '图片模糊' in self._info['register_military'] and 'register_military' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_military'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_military'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_military'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_military'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_military'] = i[1][0]
+                    self._axis['register_military'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_military']:
+                    continue
+            if '图片模糊' in self._info['register_service_office'] and 'register_service_office' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_service_office'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_service_office'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_service_office'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_service_office'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_service_office'] = i[1][0]
+                    self._axis['register_service_office'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_service_office']:
+                    continue
+            if '图片模糊' in self._info['register_date'] and 'register_date' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_date'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_date'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_date'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_date'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_date'] = i[1][0][-10:]
+                    self._axis['register_date'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_date']:
+                    continue 
+        
+        if '图片模糊' in self._info['register_previous_name']:
+            self._info['register_previous_name'] = ''
+        if '图片模糊' in self._info['register_nation']:
+            self._info['register_nation'] = '汉'
+        if '图片模糊' in self._info['register_belief']:
+            self._info['register_belief'] = ''
+        if '图片模糊' in self._info['register_military']:
+            self._info['register_military'] = ''
+            
+        for i in self._axis:
+            self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
     
     def _axis_transform_shouye(self):
         if len(self._result)==0:
@@ -117,7 +392,6 @@ class OCRHouseholdCard():
         axis_true = defaultdict(list)
         axis_dict = defaultdict(list)
 
-        step = 0
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
@@ -253,6 +527,8 @@ class OCRHouseholdCard():
                 if '图片模糊' not in self._info['household_address']:
                     continue
 
+        if '图片模糊' in self._info['household_id']:
+            self._info['household_id'] = ''
         try:
             if len(fix_x)>0:
                 fix_x = sum(fix_x)/len(fix_x)
@@ -323,7 +599,7 @@ class OCRHouseholdCard():
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
 
-# img_path = '/home/app_user_5i5j/zhaohang/11/data/hukoubenfenlei/1680845488911.jpg'
+# img_path = '/home/app_user_5i5j/zhaohang/11/data/hukoubenfenlei/1680845190234.jpg'
 # model = OCRHouseholdCard()
 # model.predict(img_path)
 
