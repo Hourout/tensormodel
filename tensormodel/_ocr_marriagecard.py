@@ -614,6 +614,103 @@ class OCRMarriageCard():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
-        
+    def metrics(self, image_list):
+        name = 0
+        date = 0
+        ids = 0
+        name_up = 0
+        sex_up = 0
+        country_up = 0
+        born_up = 0
+        number_up = 0
+        name_down = 0
+        sex_down = 0
+        country_down = 0
+        born_down = 0
+        number_down = 0
+
+        marriage_name = 0
+        marriage_date = 0
+        marriage_id = 0
+        user_name_up = 0
+        user_sex_up = 0
+        user_country_up = 0
+        user_born_up = 0
+        user_number_up = 0
+        user_name_down = 0
+        user_sex_down = 0
+        user_country_down = 0
+        user_born_down = 0
+        user_number_down = 0
+
+        for i in image_list:
+            label = i.split('$$')[1:-1]
+            t = self.predict(i)['data']
+            if isinstance(t, dict):
+                if t['marriage_name']==label[0]:
+                    name += 1
+                marriage_name += 1
+                if t['marriage_date']==label[1]:
+                    date += 1
+                marriage_date += 1
+                if t['marriage_id']==label[2]:
+                    ids += 1
+                marriage_id += 1
+                if t['user_name_up']==label[3]:
+                    name_up += 1
+                user_name_up += 1
+                if t['user_sex_up']==label[4]:
+                    sex_up += 1
+                user_sex_up += 1
+                if t['user_country_up']==label[5]:
+                    country_up += 1
+                user_country_up += 1
+                if t['user_born_up']==label[6]:
+                    born_up += 1
+                user_born_up += 1
+                if t['user_number_up']==label[7]:
+                    number_up += 1
+                user_number_up += 1
+                if t['user_name_down']==label[8]:
+                    name_down += 1
+                user_name_down += 1
+                if t['user_sex_down']==label[9]:
+                    sex_down += 1
+                user_sex_down += 1
+                if t['user_country_down']==label[10]:
+                    country_down += 1
+                user_country_down += 1
+                if t['user_born_down']==label[11]:
+                    born_down += 1
+                user_born_down += 1
+                if t['user_number_down']==label[12]:
+                    number_down += 1
+                user_number_down += 1
+            else:
+                marriage_name += 1
+                marriage_date += 1
+                marriage_id += 1
+                user_name_up += 1
+                user_sex_up += 1
+                user_country_up += 1
+                user_born_up += 1
+                user_number_up += 1
+                user_name_down += 1
+                user_sex_down += 1
+                user_country_down += 1
+                user_born_down += 1
+                user_number_down += 1
+
+        ok = name+date+ids+name_up+sex_up+country_up+born_up+number_up+name_down+sex_down+country_down+born_down+number_down
+        total = marriage_name+marriage_date+marriage_id+user_name_up+user_sex_up+user_country_up+user_born_up+user_number_up+user_name_down+user_sex_down+user_country_down+user_born_down+user_number_down
+        result = {'marriage_name_acc':name/marriage_name, 'marriage_date_acc':date/marriage_date, 
+                  'marriage_id_acc':ids/marriage_id, 'user_name_up_acc':name_up/user_name_up, 
+                  'user_sex_up_acc':sex_up/user_sex_up, 'user_country_up_acc':country_up/user_country_up, 
+                  'user_born_up_acc':born_up/user_born_up, 'user_number_up_acc':number_up/user_number_up, 
+                  'user_name_down_acc':name_down/user_name_down, 
+                  'user_sex_down_acc':sex_down/user_sex_down, 'user_country_down_acc':country_down/user_country_down, 
+                  'user_born_down_acc':born_down/user_born_down, 'user_number_down_acc':number_down/user_number_down, 
+                  'totalmean_acc':ok/total}
+        return result
 
 
