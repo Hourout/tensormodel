@@ -650,6 +650,6 @@ class OCRIDCard():
                   'born_acc':born/user_born, 'address_acc':address/user_address, 'number_acc':number/user_number, 
                   'organization_acc':organization/user_organization, 'validity_period_acc':validity_period/user_validity_period, 
                   'totalmean_acc':ok/total}
-        return result
+        return {i:round(result[i], 4) for i in result}
 
 

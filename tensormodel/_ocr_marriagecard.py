@@ -711,6 +711,6 @@ class OCRMarriageCard():
                   'user_sex_down_acc':sex_down/user_sex_down, 'user_country_down_acc':country_down/user_country_down, 
                   'user_born_down_acc':born_down/user_born_down, 'user_number_down_acc':number_down/user_number_down, 
                   'totalmean_acc':ok/total}
-        return result
+        return {i:round(result[i], 4) for i in result}
 
 
