@@ -599,7 +599,5 @@ class OCRHouseholdCard():
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
 
-# img_path = '/home/app_user_5i5j/zhaohang/11/data/hukoubenfenlei/1680845190234.jpg'
-# model = OCRHouseholdCard()
-# model.predict(img_path)
+
 
