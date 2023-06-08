@@ -12,9 +12,9 @@ class OCRHouseholdCard():
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
         self._keys = []
         self._char_household_type = ['户别']
-        self._char_household_name = ['户主姓名']
+        self._char_household_name = ['户主姓名', '户生姓名']
         self._char_household_id = ['户号']
-        self._char_household_address = ['地址']
+        self._char_household_address = ['住址']
         self._char_register_name = ['姓名']
 #         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
@@ -80,9 +80,13 @@ class OCRHouseholdCard():
                 
                 rank = [0,0,0,0,0]
                 for r, i in enumerate(result[0], start=1):
-                    if '注意事项' in i[1][0]:
+                    if '登记事项变更' in i[1][0] or '更正记载' in i[1][0]:
+                        break
+                    elif '常住人口登记卡' in i[1][0]:
+                        break
+                    elif '注意事项' in i[1][0]:
                         rank[0] = r
-                    elif '户别' in i[1][0] or '户主' in i[1][0]:
+                    elif '户别' in i[1][0] or '户主' in i[1][0] or '家庭户' in i[1][0]:
                         rank[1] = r
                     elif '户号' in i[1][0] or '住址' in i[1][0]:
                         rank[2] = r
@@ -181,7 +185,7 @@ class OCRHouseholdCard():
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
             if '常住人口登记卡' == i[1][0]:
-                h = h*1.21
+                h = h*1.25
                 w = w/7
                 axis_dict['register_name'].append(([x-w*2, y+h, x+w*4, y+h*2], 0.8))
                 axis_dict['register_previous_name'].append(([x-w*2, y+h*2, x+w*4, y+h*3], 0.8))
@@ -227,8 +231,7 @@ class OCRHouseholdCard():
                                     sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
 
-        if self._axis is None:
-            self._axis = axis_true.copy()
+        self._axis = axis_true.copy()
         for i in axis_true:
             axis_true[i] = tuple(axis_true[i])
         for i in self._result[0]:
@@ -408,7 +411,7 @@ class OCRHouseholdCard():
                             axis_true['household_type'] = [x+w*3, y, x+w*10, y+h]
                         axis_dict['household_name'].append(([x+w*14, y, x+w*24, y+h], 0.8))
                         axis_dict['household_id'].append(([x+w*3, y+h, x+w*8, y+h*3], 0.8))
-                        axis_dict['household_address'].append(([x+w*12, y+h, x+w*24, y+h*3], 0.6))
+                        axis_dict['household_address'].append(([x+w*12, y+h, x+w*24, y+h*4], 0.6))
                         break
                 if 'household_type' in axis_true:
                     continue
@@ -420,16 +423,16 @@ class OCRHouseholdCard():
                             axis_true['household_name'] = [x+w*4, y]+i[0][2]
                         else:
                             w = w/(len(i[1][0]))
-                            axis_true['household_name'] = [x+w*4, y, x+w*10, y+h]
-                        axis_dict['household_type'].append(([x-w*8, y, x, y+h], 0.8))
+                            axis_true['household_name'] = [x+w*4, y, x+w*14, y+h*1.5]
+                        axis_dict['household_type'].append(([x-w*8, y, x, y+h*1.5], 0.8))
                         axis_dict['household_id'].append(([x-w*8, y+h, x-w*2, y+h*3], 0.6))
-                        axis_dict['household_address'].append(([x+w*2, y+h, x+w*16, y+h*3], 0.8))
+                        axis_dict['household_address'].append(([x+w*2, y+h, x+w*16, y+h*4], 0.8))
                         break
                 if 'household_name' in axis_true:
                     continue
             if 'household_id' not in axis_true:
                 for char in self._char_household_id:
-                    if char in i[1][0]:
+                    if char in i[1][0] and '外部' not in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
                             w = w/(len(i[1][0])+2)
                             axis_true['household_id'] = [x+w*3, y]+i[0][2]
@@ -438,7 +441,7 @@ class OCRHouseholdCard():
                             axis_true['household_id'] = [x+w*3, y, x+w*9, y+h]
                         axis_dict['household_type'].append(([x+w*3, y-h*2, x+w*10, y], 0.8))
                         axis_dict['household_name'].append(([x+w*14, y+h*2, x+w*24, y], 0.6))
-                        axis_dict['household_address'].append(([x+w*12, y, x+w*24, y+h], 0.8))
+                        axis_dict['household_address'].append(([x+w*12, y, x+w*24, y+h*2], 0.8))
                         break
                 if 'household_id' in axis_true:
                     continue
@@ -447,17 +450,17 @@ class OCRHouseholdCard():
                     if char in i[1][0]:
                         if len(i[1][0][i[1][0].find(char)+len(char):])>1:
                             w = w/(len(i[1][0])+2)
-                            axis_true['household_address'] = [x+w*3, y]+i[0][2]
+                            axis_true['household_address'] = [x+w*3, y, x+w*25, y+h*2]
                         else:
                             w = w/(len(i[1][0])+1)
-                            axis_true['household_address'] = [x+w*3, y, x+w*18, y+h]
+                            axis_true['household_address'] = [x+w*3, y, x+w*25, y+h*2]
                         axis_dict['household_type'].append(([x-w*6, y-h*2, x+w, y], 0.6))
                         axis_dict['household_name'].append(([x+w*5, y-h*2, x+w*14, y], 0.8))
                         axis_dict['household_id'].append(([x-w*6, y, x-w, y+h], 0.8))
                         break
                 if 'household_address' in axis_true:
                     continue
-
+#         print(axis_true, axis_dict)
         for i in ['household_type', 'household_name', 'household_id', 'household_address']:
             if i not in axis_true:
                 if i in axis_dict:
@@ -467,10 +470,10 @@ class OCRHouseholdCard():
                                     sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
 
-        if self._axis is None:
-            self._axis = axis_true.copy()
+        self._axis = axis_true.copy()
         for i in axis_true:
             axis_true[i] = tuple(axis_true[i])
+        address = ''
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
@@ -504,7 +507,7 @@ class OCRHouseholdCard():
             if '图片模糊' in self._info['household_id'] and 'household_id' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_id'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_id'][0])            
-                if h1/h>0.6 and w1/w>0.6:
+                if h1/h>0.6 and w1/w>0.6 and '家庭' not in i[1][0]:
                     if len(i[1][0][i[1][0].find('号')+len('号'):])>1:
                         self._info['household_id'] = i[1][0][i[1][0].find('号')+1:]
                         self._axis['household_id'] = [self._axis['household_id'][0], y]+i[0][2]
@@ -518,17 +521,22 @@ class OCRHouseholdCard():
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_address'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_address'][0])            
                 if h1/h>0.6 and w1/w>0.6:
-                    if len(i[1][0][i[1][0].find('址')+len('址'):])>1:
-                        self._info['household_address'] = i[1][0][i[1][0].find('址')+1:]
+                    if len(i[1][0][i[1][0].find('址')+len('址'):])>1 and '址' in i[1][0]:
+                        address += i[1][0][i[1][0].find('址')+1:]
                         self._axis['household_address'] = [self._axis['household_address'][0], y]+i[0][2]
                     elif len(i[1][0])>1:
-                        self._info['household_address'] = i[1][0]
-                        self._axis['household_address'] = [x, y]+i[0][2]
-                if '图片模糊' not in self._info['household_address']:
-                    continue
+                        if address=='':
+                            self._axis['household_address'] = [x, y]+i[0][2]
+                        else:
+                            self._axis['household_address'][3] = i[0][2][1]
+                        address += i[1][0]
 
+        if '图片模糊' in self._info['household_address'] and address!='':
+            self._info['household_address'] = address
         if '图片模糊' in self._info['household_id']:
             self._info['household_id'] = ''
+        if self._info['household_type'][0]=='非':
+            self._info['household_type'] = '非农业家庭户'
         try:
             if len(fix_x)>0:
                 fix_x = sum(fix_x)/len(fix_x)
@@ -539,7 +547,7 @@ class OCRHouseholdCard():
     
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
-    
+        
     
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
         if image is None:
@@ -597,6 +605,8 @@ class OCRHouseholdCard():
             return 'Environment check ok.'
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
+
+
 
 
 
