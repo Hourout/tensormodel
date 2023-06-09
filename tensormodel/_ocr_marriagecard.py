@@ -285,6 +285,10 @@ class OCRMarriageCard():
                     step_name = 1
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            if h==0:
+                h = 1
+            if w==0:
+                w = 1
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
             if '图片模糊' in self._info['marriage_name'] and 'marriage_name' in axis_true:

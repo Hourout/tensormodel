@@ -327,6 +327,10 @@ class OCRIDCard():
         for i in self._result_up[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            if h==0:
+                h = 1
+            if w==0:
+                w = 1
             if '图片模糊' in self._info['user_name'] and 'user_name' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name'][0])            
