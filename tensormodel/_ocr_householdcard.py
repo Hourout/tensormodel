@@ -99,7 +99,7 @@ class OCRHouseholdCard():
                     self._result = result.copy()
                     self._angle = angle
                     self._mode = 'shouye'
-                    self._keys = ['household_type', 'household_name', 'household_id', 'household_address']
+                    self._keys = ['household_type', 'household_name', 'household_id', 'household_address', 'household_date']
                     break
                     
                 rank = [0,0,0,0,0,0,0,0,0,0]
@@ -134,7 +134,7 @@ class OCRHouseholdCard():
                                   'register_nation', 'register_born', 'register_number',
                                   'register_education', 'register_service_office', 'register_belief', 
                                   'register_height', 'register_height', 'register_blood', 
-                                  'register_marriage', 'register_military', 'register_date']
+                                  'register_marriage', 'register_military', 'register_date', 'register_content']
                     break
         
         self._info = {}
@@ -143,6 +143,7 @@ class OCRHouseholdCard():
             self._info['household_name'] = '图片模糊:未识别出户主'
             self._info['household_id'] = '图片模糊:未识别出户号'
             self._info['household_address'] = '图片模糊:未识别出住址'
+            self._info['household_date'] = '图片模糊:未识别出签发日期'
         elif self._mode == 'neirong':
             self._info['register_name'] = '图片模糊:未识别出姓名'
             self._info['register_relation'] = '图片模糊:未识别出与户主关系'
@@ -162,6 +163,7 @@ class OCRHouseholdCard():
             self._info['register_service_office'] = '图片模糊:未识别出服务处所'
             self._info['register_address'] = '图片模糊:未识别出何时迁入本住址'
             self._info['register_date'] = '图片模糊:未识别出登记日期'
+            self._info['register_content'] = '图片模糊:未识别出变更内容'
         else:
             self._info = '图片模糊:未识别出有效信息'
             self._error = '图片模糊:未识别出有效信息'
@@ -384,6 +386,8 @@ class OCRHouseholdCard():
             self._info['register_belief'] = ''
         if '图片模糊' in self._info['register_military']:
             self._info['register_military'] = ''
+        if '图片模糊' in self._info['register_content']:
+            self._info['register_content'] = ''
             
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
@@ -534,6 +538,10 @@ class OCRHouseholdCard():
                         else:
                             self._axis['household_address'][3] = i[0][2][1]
                         address += i[1][0]
+            if '图片模糊' in self._info['household_date']:
+                if '年' in i[1][0] and '月' in i[1][0] and i[1][0].endswith('日'):
+                    self._info['household_date'] = i[1][0][max(0, i[1][0].find('年')-4):]
+                    continue
 
         if '图片模糊' in self._info['household_address'] and address!='':
             self._info['household_address'] = address
@@ -609,6 +617,51 @@ class OCRHouseholdCard():
             return 'Environment check ok.'
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
+
+    def metrics(self, image_list):
+        types = 0
+        name = 0
+        ids = 0
+        address = 0
+        date = 0
+
+        household_type = 0
+        household_name = 0
+        household_id = 0
+        household_address = 0
+        household_date = 0
+
+        for i in image_list:
+            label = i.split('$$')[1:-1]
+            t = self.predict(i)['data']
+            if isinstance(t, dict):
+                if len(t)==4 and len(label)==4:
+                    if t['household_type']==label[0]:
+                        types += 1
+                    if t['household_name']==label[1]:
+                        name += 1
+                    if t['household_id']==label[2]:
+                        ids += 1
+                    if t['household_address']==label[3]:
+                        address += 1
+                    if t['household_date']==label[4]:
+                        date += 1
+                elif len(t)==18:
+                    continue
+            else:
+                if len(t)==4:
+                    household_type += 1
+                    household_name += 1
+                    household_id += 1
+                    household_address += 1
+                    household_date += 1
+
+        ok = types+name+ids+address+date
+        total = household_type+household_name+household_id+household_address+household_date
+        result = {'type_acc':types/household_type, 'name_acc':name/household_name, 'id_acc':ids/household_id,
+                  'address_acc':address/household_address, 'date_acc':date/household_date, 
+                  'totalmean_acc':ok/total}
+        return {i:round(result[i], 4) for i in result}
 
 
 
