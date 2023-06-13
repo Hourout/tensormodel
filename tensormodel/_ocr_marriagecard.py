@@ -653,57 +653,44 @@ class OCRMarriageCard():
             if isinstance(t, dict):
                 if t['marriage_name']==label[0]:
                     name += 1
-                marriage_name += 1
                 if t['marriage_date']==label[1]:
                     date += 1
-                marriage_date += 1
                 if t['marriage_id']==label[2]:
                     ids += 1
-                marriage_id += 1
                 if t['user_name_up']==label[3]:
                     name_up += 1
-                user_name_up += 1
                 if t['user_sex_up']==label[4]:
                     sex_up += 1
-                user_sex_up += 1
                 if t['user_country_up']==label[5]:
                     country_up += 1
-                user_country_up += 1
                 if t['user_born_up']==label[6]:
                     born_up += 1
-                user_born_up += 1
                 if t['user_number_up']==label[7]:
                     number_up += 1
-                user_number_up += 1
                 if t['user_name_down']==label[8]:
                     name_down += 1
-                user_name_down += 1
                 if t['user_sex_down']==label[9]:
                     sex_down += 1
-                user_sex_down += 1
                 if t['user_country_down']==label[10]:
                     country_down += 1
-                user_country_down += 1
                 if t['user_born_down']==label[11]:
                     born_down += 1
-                user_born_down += 1
                 if t['user_number_down']==label[12]:
                     number_down += 1
-                user_number_down += 1
-            else:
-                marriage_name += 1
-                marriage_date += 1
-                marriage_id += 1
-                user_name_up += 1
-                user_sex_up += 1
-                user_country_up += 1
-                user_born_up += 1
-                user_number_up += 1
-                user_name_down += 1
-                user_sex_down += 1
-                user_country_down += 1
-                user_born_down += 1
-                user_number_down += 1
+
+            marriage_name += 1
+            marriage_date += 1
+            marriage_id += 1
+            user_name_up += 1
+            user_sex_up += 1
+            user_country_up += 1
+            user_born_up += 1
+            user_number_up += 1
+            user_name_down += 1
+            user_sex_down += 1
+            user_country_down += 1
+            user_born_down += 1
+            user_number_down += 1
 
         ok = name+date+ids+name_up+sex_up+country_up+born_up+number_up+name_down+sex_down+country_down+born_down+number_down
         total = marriage_name+marriage_date+marriage_id+user_name_up+user_sex_up+user_country_up+user_born_up+user_number_up+user_name_down+user_sex_down+user_country_down+user_born_down+user_number_down

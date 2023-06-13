@@ -601,53 +601,43 @@ class OCRIDCard():
             label = i.split('$$')[1:-1]
             t = self.predict(i)['data']
             if isinstance(t, dict):
-                if len(t)>=6:
+                if len(t)>=6 and len(label)>=6:
                     if t['user_name']==label[0]:
                         name += 1
-                    user_name += 1
                     if t['user_sex']==label[1]:
                         sex += 1
-                    user_sex += 1
                     if t['user_nation']==label[2]:
                         nation += 1
-                    user_nation += 1
                     if t['user_born']==label[3]:
                         born += 1
-                    user_born += 1
                     if t['user_address']==label[4]:
                         address += 1
-                    user_address += 1
                     if t['user_number']==label[5]:
                         number += 1
-                    user_number += 1
                     if len(t)==9:
                         if t['user_organization']==label[7]:
                             organization += 1
-                        user_organization += 1
                         if t['user_validity_period']==label[8]:
                             validity_period += 1
-                        user_validity_period += 1
-                elif len(t)==3:
+                elif len(t)==3 and len(label)==3:
                     if t['user_organization']==label[1]:
                         organization += 1
-                    user_organization += 1
                     if t['user_validity_period']==label[2]:
                         validity_period += 1
-                    user_validity_period += 1
-            else:
-                if len(label)==3:
-                    user_organization += 1
-                    user_validity_period += 1
-                elif len(label)>=6:
-                    user_name += 1
-                    user_sex += 1
-                    user_nation += 1
-                    user_born += 1
-                    user_address += 1
-                    user_number += 1
-                    if len(label)==9:
-                        user_organization += 1
-                        user_validity_period += 1
+
+            if len(label)==3:
+                user_organization += 1
+                user_validity_period += 1
+            elif len(label)==6:
+                user_name += 1
+                user_sex += 1
+                user_nation += 1
+                user_born += 1
+                user_address += 1
+                user_number += 1
+            elif len(label)==9:
+                user_organization += 1
+                user_validity_period += 1
         ok = name+sex+nation+born+address+number+organization+validity_period
         total = user_name+user_sex+user_nation+user_born+user_address+user_number+user_organization+user_validity_period
         result = {'name_acc':name/user_name, 'sex_acc':sex/user_sex, 'nation_acc':nation/user_nation, 
