@@ -414,6 +414,7 @@ class OCRIDCard():
                     break
             if '图片模糊' in self._info['user_sex']:
                 self._info['user_sex'] = '男'
+        self._info['user_number'] = self._info['user_number'].upper()
         
         if self._show_axis:
             try:
@@ -513,7 +514,10 @@ class OCRIDCard():
                         elif len(temp) in [12, 13]:
                             self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{temp[8:12]}.{temp[4:6]}.{temp[6:8]}'
                         elif len(temp) in [8, 9, 10, 11]:
-                            self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{int(temp[:4])+20}.{temp[4:6]}.{temp[6:8]}'
+                            try:
+                                self._info['user_validity_period'] = f'{temp[:4]}.{temp[4:6]}.{temp[6:8]}-{int(temp[:4])+20}.{temp[4:6]}.{temp[6:8]}'
+                            except:
+                                pass
                     if '图片模糊' not in self._info['user_validity_period']:
                         if '长期' not in self._info['user_validity_period']:
                             if abs(int(self._info['user_validity_period'][:4])-int(self._info['user_validity_period'][11:15]))>30:
