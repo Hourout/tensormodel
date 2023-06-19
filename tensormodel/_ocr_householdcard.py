@@ -133,7 +133,7 @@ class OCRHouseholdCard():
                                   'register_nativeplace', 'register_relation', 'register_sex', 
                                   'register_nation', 'register_born', 'register_number',
                                   'register_education', 'register_service_office', 'register_belief', 
-                                  'register_height', 'register_height', 'register_blood', 
+                                  'register_height', 'register_blood',  'register_career', 'register_address',
                                   'register_marriage', 'register_military', 'register_date', 'register_content']
                     break
         
@@ -161,6 +161,7 @@ class OCRHouseholdCard():
             self._info['register_marriage'] = '图片模糊:未识别出婚姻状况'
             self._info['register_military'] = '图片模糊:未识别出兵役状况'
             self._info['register_service_office'] = '图片模糊:未识别出服务处所'
+            self._info['register_career'] = '图片模糊:未识别出职业'
             self._info['register_address'] = '图片模糊:未识别出何时迁入本住址'
             self._info['register_date'] = '图片模糊:未识别出登记日期'
             self._info['register_content'] = '图片模糊:未识别出变更内容'
@@ -205,6 +206,8 @@ class OCRHouseholdCard():
                 axis_dict['register_blood'].append(([x+w*11, y+h*6, x+w*13, y+h*7], 0.6))
                 axis_dict['register_marriage'].append(([x+w*4.5, y+h*7, x+w*6, y+h*8], 0.6))
                 axis_dict['register_military'].append(([x+w*9, y+h*7, x+w*13, y+h*8], 0.6))
+                axis_dict['register_career'].append(([x+w*9, y+h*8, x+w*13, y+h*9], 0.6))
+                axis_dict['register_address'].append(([x-w, y+h*10, x+w*13, y+h*11], 0.6))
                 axis_dict['register_date'].append(([x+w*8.5, y+h*11, x+w*13, y+h*12], 0.6))
                 continue
 #             if 'register_name' not in axis_true:
@@ -369,6 +372,22 @@ class OCRHouseholdCard():
                     self._axis['register_service_office'] = [x, y]+i[0][2]
                 if '图片模糊' not in self._info['register_service_office']:
                     continue
+            if '图片模糊' in self._info['register_career'] and 'register_career' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_career'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_career'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_career'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_career'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_career'] = i[1][0]
+                    self._axis['register_career'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_career']:
+                    continue
+            if '图片模糊' in self._info['register_address'] and 'register_address' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_address'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_address'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_address'] = i[1][0]
+                    self._axis['register_address'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_address']:
+                    continue
             if '图片模糊' in self._info['register_date'] and 'register_date' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_date'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_date'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_date'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_date'][0])            
@@ -391,6 +410,13 @@ class OCRHouseholdCard():
             
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
+            
+        t = ['register_name', 'register_previous_name', 'register_relation', 'register_sex', 
+              'register_born', 'register_number', 'register_education', 'register_service_office', 
+              'register_marriage', 'register_military', 'register_career', 
+              'register_address', 'register_date', 'register_content']
+        self._info = {i:self._info[i] for i in t}
+            
     
     def _axis_transform_shouye(self):
         if len(self._result)==0:
