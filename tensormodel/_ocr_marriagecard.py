@@ -16,7 +16,7 @@ class OCRMarriageCard():
                       'user_face', 'user_card']
         self._char_marriage_name = ['持证人']
         self._char_marriage_date = ['登记日期']
-        self._char_marriage_id = ['结婚证字号']
+        self._char_marriage_id = ['结婚证字号', '离婚证字号']
         self._char_user_name = ['姓名']
         self._char_user_country = ['国籍', '国箱', '国馨']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -96,7 +96,7 @@ class OCRMarriageCard():
                         rank[0] = r
                     elif '登记日期' in i[1][0]:
                         rank[1] = r
-                    elif '结婚证字号'in i[1][0]:
+                    elif '婚证字号'in i[1][0]:
                         rank[2] = r
                     elif '备注' in i[1][0]:
                         rank[3] = r
