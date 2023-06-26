@@ -644,48 +644,138 @@ class OCRHouseholdCard():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
-    def metrics(self, image_list):
+    def metrics(self, image_list, label_list=None):
         types = 0
-        name = 0
+        names = 0
         ids = 0
+        addresss = 0
+        dates = 0
+
+        household_type = 0.0000001
+        household_name = 0.0000001
+        household_id = 0.0000001
+        household_address = 0.0000001
+        household_date = 0.0000001
+    
+        name = 0
+        previous_name = 0
+        relation = 0
+        sex = 0
+        born = 0
+        number = 0
+        education = 0
+        service_office = 0
+        marriage = 0
+        military = 0
+        career = 0
         address = 0
         date = 0
+        content = 0
+        
+        register_name = 0.0000001
+        register_previous_name = 0.0000001
+        register_relation = 0.0000001
+        register_sex = 0.0000001
+        register_born = 0.0000001
+        register_number = 0.0000001
+        register_education = 0.0000001
+        register_service_office = 0.0000001
+        register_marriage = 0.0000001
+        register_military = 0.0000001
+        register_career = 0.0000001
+        register_address = 0.0000001
+        register_date = 0.0000001
+        register_content = 0.0000001
 
-        household_type = 0
-        household_name = 0
-        household_id = 0
-        household_address = 0
-        household_date = 0
-
-        for i in image_list:
-            label = i.split('$$')[1:-1]
-            t = self.predict(i)['data']
-            if isinstance(t, dict):
-                if len(t)==4 and len(label)==4:
-                    if t['household_type']==label[0]:
-                        types += 1
-                    if t['household_name']==label[1]:
-                        name += 1
-                    if t['household_id']==label[2]:
-                        ids += 1
-                    if t['household_address']==label[3]:
-                        address += 1
-                    if t['household_date']==label[4]:
-                        date += 1
-                elif len(t)==18:
-                    continue
+        for r, i in enumerate(image_list):
+            if label_list is None:
+                label = i.split('$$')[1:-1]
             else:
-                if len(t)==4:
-                    household_type += 1
-                    household_name += 1
-                    household_id += 1
-                    household_address += 1
-                    household_date += 1
+                label = label_list[r].split('$$')[1:-1]
+            t = self.predict(i)['data']
+            try:
+                if isinstance(t, dict):
+                    if len(label)==5:
+                        if t['household_type']==label[0]:
+                            types += 1
+                        if t['household_name']==label[1]:
+                            names += 1
+                        if t['household_id']==label[2]:
+                            ids += 1
+                        if t['household_address']==label[3]:
+                            addresss += 1
+                        if t['household_date']==label[4]:
+                            dates += 1
+                    elif len(label)==14:
+                        if t['register_name']==label[0]:
+                            name += 1
+                        if t['register_previous_name']==label[1]:
+                            previous_name += 1
+                        if t['register_relation']==label[2]:
+                            relation += 1
+                        if t['register_sex']==label[3]:
+                            sex += 1
+                        if t['register_born']==label[4]:
+                            born += 1
+                        if t['register_number']==label[5]:
+                            number += 1
+                        if t['register_education']==label[6]:
+                            education += 1
+                        if t['register_service_office']==label[7]:
+                            service_office += 1
+                        if t['register_marriage']==label[8]:
+                            marriage += 1
+                        if t['register_military']==label[9]:
+                            military += 1
+                        if t['register_career']==label[10]:
+                            career += 1
+                        if t['register_address']==label[11]:
+                            address += 1
+                        if t['register_date']==label[12]:
+                            date += 1
+                        if t['register_content']==label[13]:
+                            content += 1
+            except:
+                pass
+            if len(label)==5:
+                household_type += 1
+                household_name += 1
+                household_id += 1
+                household_address += 1
+                household_date += 1
+            elif len(label)==14:
+                register_name += 1
+                register_previous_name += 1
+                register_relation += 1
+                register_sex += 1
+                register_born += 1
+                register_number += 1
+                register_education += 1
+                register_service_office += 1
+                register_marriage += 1
+                register_military += 1
+                register_career += 1
+                register_address += 1
+                register_date += 1
+                register_content += 1
 
-        ok = types+name+ids+address+date
-        total = household_type+household_name+household_id+household_address+household_date
-        result = {'type_acc':types/household_type, 'name_acc':name/household_name, 'id_acc':ids/household_id,
-                  'address_acc':address/household_address, 'date_acc':date/household_date, 
+        ok = (name+previous_name+relation+sex+born+number+education+service_office
+              +marriage+military+career+address+date+content
+              +types+names+ids+addresss+dates)
+        total = (register_name+register_previous_name+register_relation+register_sex
+                 +register_born+register_number+register_education+register_service_office
+                 +register_marriage+register_military+register_career+register_address+register_date+register_content
+                 +household_type+household_name+household_id+household_address+household_date)
+        result = {'household_type_acc':types/household_type, 'household_name_acc':names/household_name, 
+                  'household_id_acc':ids/household_id,
+                  'household_address_acc':addresss/household_address, 'household_date_acc':dates/household_date, 
+                  'register_name_acc':name/register_name, 'register_previous_name_acc':previous_name/register_previous_name,
+                  'register_relation_acc':relation/register_relation, 'register_sex_acc':sex/register_sex,
+                  'register_born_acc':born/register_born, 'register_number_acc':number/register_number,
+                  'register_education_acc':education/register_education, 'register_service_office_acc':service_office/register_service_office,
+                  'register_marriage_acc':marriage/register_marriage, 'register_military_acc':military/register_military,
+                  'register_career_acc':career/register_career, 'register_address_acc':address/register_address,
+                  'register_date_acc':date/register_date, 'register_content_acc':content/register_content,
                   'totalmean_acc':ok/total}
         return {i:round(result[i], 4) for i in result}
 
