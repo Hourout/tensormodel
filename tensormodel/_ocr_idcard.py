@@ -520,9 +520,12 @@ class OCRIDCard():
                                 pass
                     if '图片模糊' not in self._info['user_validity_period']:
                         if '长期' not in self._info['user_validity_period']:
-                            if abs(int(self._info['user_validity_period'][:4])-int(self._info['user_validity_period'][11:15]))>30:
-                                self._info['user_validity_period'] = '图片模糊:未识别出有效期限'
-                                continue
+                            try:
+                                if abs(int(self._info['user_validity_period'][:4])-int(self._info['user_validity_period'][11:15]))>30:
+                                    self._info['user_validity_period'] = '图片模糊:未识别出有效期限'
+                                    continue
+                            except:
+                                pass
                         break
     
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
