@@ -133,7 +133,7 @@ class OCRHouseholdCard():
                                   'register_nativeplace', 'register_relation', 'register_sex', 
                                   'register_nation', 'register_born', 'register_number',
                                   'register_education', 'register_service_office', 'register_belief', 
-                                  'register_height', 'register_blood',  'register_career', 'register_address',
+                                  'register_height', 'register_blood',  'register_career', 'register_city', 'register_address',
                                   'register_marriage', 'register_military', 'register_date', 'register_content']
                     break
         
@@ -162,6 +162,7 @@ class OCRHouseholdCard():
             self._info['register_military'] = '图片模糊:未识别出兵役状况'
             self._info['register_service_office'] = '图片模糊:未识别出服务处所'
             self._info['register_career'] = '图片模糊:未识别出职业'
+            self._info['register_city'] = '图片模糊:未识别出何时迁入本市县'
             self._info['register_address'] = '图片模糊:未识别出何时迁入本住址'
             self._info['register_date'] = '图片模糊:未识别出登记日期'
             self._info['register_content'] = '图片模糊:未识别出变更内容'
@@ -207,6 +208,7 @@ class OCRHouseholdCard():
                 axis_dict['register_marriage'].append(([x+w*4.5, y+h*7, x+w*6, y+h*8], 0.6))
                 axis_dict['register_military'].append(([x+w*9, y+h*7, x+w*13, y+h*8], 0.6))
                 axis_dict['register_career'].append(([x+w*9, y+h*8, x+w*13, y+h*9], 0.6))
+                axis_dict['register_city'].append(([x-w, y+h*9, x+w*13, y+h*10], 0.6))
                 axis_dict['register_address'].append(([x-w, y+h*10, x+w*13, y+h*11], 0.6))
                 axis_dict['register_date'].append(([x+w*8.5, y+h*11, x+w*13, y+h*12], 0.6))
                 continue
@@ -380,6 +382,14 @@ class OCRHouseholdCard():
                     self._axis['register_career'] = [x, y]+i[0][2]
                 if '图片模糊' not in self._info['register_career']:
                     continue
+            if '图片模糊' in self._info['register_city'] and 'register_city' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_city'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_city'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_city'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_city'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['register_city'] = i[1][0]
+                    self._axis['register_city'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['register_city']:
+                    continue
             if '图片模糊' in self._info['register_address'] and 'register_address' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['register_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['register_address'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['register_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['register_address'][0])            
@@ -413,7 +423,7 @@ class OCRHouseholdCard():
             
         t = ['register_name', 'register_previous_name', 'register_relation', 'register_sex', 
               'register_born', 'register_number', 'register_education', 'register_service_office', 
-              'register_marriage', 'register_military', 'register_career', 
+              'register_marriage', 'register_military', 'register_career', 'register_city', 
               'register_address', 'register_date', 'register_content']
         self._info = {i:self._info[i] for i in t}
             
@@ -668,6 +678,7 @@ class OCRHouseholdCard():
         marriage = 0
         military = 0
         career = 0
+        city = 0
         address = 0
         date = 0
         content = 0
@@ -683,6 +694,7 @@ class OCRHouseholdCard():
         register_marriage = 0.0000001
         register_military = 0.0000001
         register_career = 0.0000001
+        register_city = 0.0000001
         register_address = 0.0000001
         register_date = 0.0000001
         register_content = 0.0000001
@@ -729,11 +741,13 @@ class OCRHouseholdCard():
                             military += 1
                         if t['register_career']==label[10]:
                             career += 1
-                        if t['register_address']==label[11]:
+                        if t['register_city']==label[11]:
+                            city += 1
+                        if t['register_address']==label[12]:
                             address += 1
-                        if t['register_date']==label[12]:
+                        if t['register_date']==label[13]:
                             date += 1
-                        if t['register_content']==label[13]:
+                        if t['register_content']==label[14]:
                             content += 1
             except:
                 pass
@@ -755,16 +769,18 @@ class OCRHouseholdCard():
                 register_marriage += 1
                 register_military += 1
                 register_career += 1
+                register_city += 1
                 register_address += 1
                 register_date += 1
                 register_content += 1
 
         ok = (name+previous_name+relation+sex+born+number+education+service_office
-              +marriage+military+career+address+date+content
+              +marriage+military+career++city+address+date+content
               +types+names+ids+addresss+dates)
         total = (register_name+register_previous_name+register_relation+register_sex
                  +register_born+register_number+register_education+register_service_office
-                 +register_marriage+register_military+register_career+register_address+register_date+register_content
+                 +register_marriage+register_military+register_career+register_city
+                 +register_address+register_date+register_content
                  +household_type+household_name+household_id+household_address+household_date)
         result = {'household_type_acc':types/household_type, 'household_name_acc':names/household_name, 
                   'household_id_acc':ids/household_id,
@@ -772,11 +788,12 @@ class OCRHouseholdCard():
                   'register_name_acc':name/register_name, 'register_previous_name_acc':previous_name/register_previous_name,
                   'register_relation_acc':relation/register_relation, 'register_sex_acc':sex/register_sex,
                   'register_born_acc':born/register_born, 'register_number_acc':number/register_number,
-                  'register_education_acc':education/register_education, 'register_service_office_acc':service_office/register_service_office,
+                  'register_education_acc':education/register_education, 
+                  'register_service_office_acc':service_office/register_service_office,
                   'register_marriage_acc':marriage/register_marriage, 'register_military_acc':military/register_military,
-                  'register_career_acc':career/register_career, 'register_address_acc':address/register_address,
-                  'register_date_acc':date/register_date, 'register_content_acc':content/register_content,
-                  'totalmean_acc':ok/total}
+                  'register_career_acc':career/register_career, 'register_city_acc':city/register_city, 
+                  'register_address_acc':address/register_address, 'register_date_acc':date/register_date,
+                  'register_content_acc':content/register_content, 'totalmean_acc':ok/total}
         return {i:round(result[i], 4) for i in result}
 
 
