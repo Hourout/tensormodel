@@ -25,8 +25,10 @@ class OCRIDCard():
         self._error = 'ok'
         self._angle_up = -1
         self._angle_down = -1
+        self._image_str = ''
         
         if isinstance(image, str):
+            self._image_str = image
             self._image = cv2.imread(image)
             self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
             self._image = la.image.array_to_image(self._image)
@@ -117,7 +119,7 @@ class OCRIDCard():
                     image1 = la.image.rotate(image, angle, expand=True)
                     image1 = la.image.image_to_array(image1)
                 else:
-                    image1 = la.image.image_to_array(image)
+                    image1 = self._image_str
                 result = self.ocr.ocr(image1, cls=False)
 
                 if not state_up:
@@ -653,5 +655,3 @@ class OCRIDCard():
                   'organization_acc':organization/user_organization, 'validity_period_acc':validity_period/user_validity_period, 
                   'totalmean_acc':ok/total}
         return {i:round(result[i], 4) for i in result}
-
-
