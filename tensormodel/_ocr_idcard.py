@@ -370,9 +370,11 @@ class OCRIDCard():
             if '图片模糊' in self._info['user_number']:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number'] = i[1][0][-18:]
-                    if i[1][0][-18:][16] not in 'xX':
+                    try:
                         self._info['user_sex'] =  '男' if int(i[1][0][-18:][16])%2 else '女'
-                    self._info['user_born'] = f"{i[1][0][-18:][6:10]}年{i[1][0][-18:][10:12]}月{i[1][0][-18:][12:14]}日"
+                        self._info['user_born'] = f"{i[1][0][-18:][6:10]}年{int(i[1][0][-18:][10:12])}月{int(i[1][0][-18:][12:14])}日"
+                    except:
+                        pass
                 if '图片模糊' not in self._info['user_number']:
                     continue
             if '图片模糊' in self._info['user_address'] and 'user_address' in axis_true:
