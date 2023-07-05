@@ -529,7 +529,7 @@ class OCRIDCard():
                                 if abs(int(self._info['user_validity_period'][:4])-int(self._info['user_validity_period'][11:15]))>30:
                                     self._info['user_validity_period'] = '图片模糊:未识别出有效期限'
                                     continue
-                        break
+#                         break
     
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
         if image is None:
@@ -650,8 +650,10 @@ class OCRIDCard():
                     user_validity_period += 1
         ok = name+sex+nation+born+address+number+organization+validity_period
         total = user_name+user_sex+user_nation+user_born+user_address+user_number+user_organization+user_validity_period
-        result = {'name_acc':name/user_name, 'sex_acc':sex/user_sex, 'nation_acc':nation/user_nation, 
-                  'born_acc':born/user_born, 'address_acc':address/user_address, 'number_acc':number/user_number, 
-                  'organization_acc':organization/user_organization, 'validity_period_acc':validity_period/user_validity_period, 
-                  'totalmean_acc':ok/total}
+        result = {'user_name_acc':name/user_name, 'user_sex_acc':sex/user_sex, 
+                  'user_nation_acc':nation/user_nation, 'user_born_acc':born/user_born, 
+                  'user_address_acc':address/user_address, 'user_number_acc':number/user_number, 
+                  'user_organization_acc':organization/user_organization,
+                  'user_validity_period_acc':validity_period/user_validity_period, 
+                  'totalmean_acc':ok/total, 'test_sample_nums':len(image_list)}
         return {i:round(result[i], 4) for i in result}
