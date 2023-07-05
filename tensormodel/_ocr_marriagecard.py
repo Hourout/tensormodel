@@ -18,58 +18,52 @@ class OCRMarriageCard():
         self._char_marriage_date = ['登记日期']
         self._char_marriage_id = ['结婚证字号', '离婚证字号']
         self._char_user_name = ['姓名']
-        self._char_user_country = ['国籍', '国箱', '国馨', '国精']
+        self._char_user_country = ['国籍', '国箱', '国馨']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
-    def predict(self, image, axis=False, ocr_result=None):
+    def predict(self, image, axis=False):
         self._marriage_name_prob = 0
         self._axis = None
         self._show_axis = axis
         self._error = 'ok'
         self._angle = -1
-        
-        if ocr_result is not None:
-            self._result = ocr_result
-            self._direction_transform(image, use_ocr_result=True)
-            self._axis_transform_up()
+        if isinstance(image, str):
+            self._image = cv2.imread(image)
+            self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
+            self._image = la.image.array_to_image(self._image)
+#             image = la.image.read_image(image)
+#             self._image = la.image.color_convert(image)
         else:
-            if isinstance(image, str):
-                self._image = cv2.imread(image)
-                self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
-                self._image = la.image.array_to_image(self._image)
-    #             image = la.image.read_image(image)
-    #             self._image = la.image.color_convert(image)
+            self._image = image
+        self._direction_transform(self._image)
+        if isinstance(self._info, str):
+            self._direction_transform(la.image.enhance_brightness(self._image, 0.8))
+        if isinstance(self._info, str):
+            if self._show_axis:
+                return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
             else:
-                self._image = image
-            self._direction_transform(self._image)
-            if isinstance(self._info, str):
-                self._direction_transform(la.image.enhance_brightness(self._image, 0.8))
-            if isinstance(self._info, str):
+                return {'data':self._info, 'angle':0, 'error':self._error}
+        self._axis_transform_up()
+        for i in self._info:
+            if '图片模糊' in self._info[i]:
+                self._temp_info = self._info.copy()
                 if self._show_axis:
-                    return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
-                else:
-                    return {'data':self._info, 'angle':0, 'error':self._error}
-            self._axis_transform_up()
-            for i in self._info:
-                if '图片模糊' in self._info[i]:
-                    self._temp_info = self._info.copy()
+                    self._temp_axis = self._axis.copy()
+                self._direction_transform(la.image.enhance_brightness(self._image, 0.6))
+                self._axis_transform_up()
+                if isinstance(self._info, str):
+                    self._info = self._temp_info.copy()
                     if self._show_axis:
-                        self._temp_axis = self._axis.copy()
-                    self._direction_transform(la.image.enhance_brightness(self._image, 0.6))
-                    self._axis_transform_up()
-                    if isinstance(self._info, str):
-                        self._info = self._temp_info.copy()
-                        if self._show_axis:
-                            self._axis = self._temp_axis.copy()
-                    else:
-                        for j in self._temp_info:
-                            if '图片模糊' not in self._temp_info[j]:
-                                self._info[j] = self._temp_info[j]
-                        if self._show_axis:
-                            for j in self._temp_axis:
-                                if j not in self._axis:
-                                    self._axis[j] = self._temp_axis[j]
-                    break
+                        self._axis = self._temp_axis.copy()
+                else:
+                    for j in self._temp_info:
+                        if '图片模糊' not in self._temp_info[j]:
+                            self._info[j] = self._temp_info[j]
+                    if self._show_axis:
+                        for j in self._temp_axis:
+                            if j not in self._axis:
+                                self._axis[j] = self._temp_axis[j]
+                break
         
         self._error = 'ok'
         angle = 0 if self._angle==-1 else self._angle
@@ -82,10 +76,8 @@ class OCRMarriageCard():
         else:
             return {'data':self._info, 'angle':angle, 'error':self._error}
         
-    def _direction_transform(self, image, use_ocr_result=False):
-        if use_ocr_result:
-            self._angle = 0
-        elif self._angle!=-1:
+    def _direction_transform(self, image):
+        if self._angle!=-1:
             image1 = la.image.rotate(image, self._angle, expand=True)
             image1 = la.image.image_to_array(image1)
             self._result = self.ocr.ocr(image1, cls=False)
@@ -709,6 +701,7 @@ class OCRMarriageCard():
                   'user_name_down_acc':name_down/user_name_down, 
                   'user_sex_down_acc':sex_down/user_sex_down, 'user_country_down_acc':country_down/user_country_down, 
                   'user_born_down_acc':born_down/user_born_down, 'user_number_down_acc':number_down/user_number_down, 
-                  'totalmean_acc':ok/total}
+                  'totalmean_acc':ok/total, 'test_sample_nums':len(image_list)}
         return {i:round(result[i], 4) for i in result}
+
 
