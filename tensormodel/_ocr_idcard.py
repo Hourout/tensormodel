@@ -25,10 +25,8 @@ class OCRIDCard():
         self._error = 'ok'
         self._angle_up = -1
         self._angle_down = -1
-        self._image_str = ''
         
         if isinstance(image, str):
-            self._image_str = image
             self._image = cv2.imread(image)
             self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
             self._image = la.image.array_to_image(self._image)
@@ -119,7 +117,7 @@ class OCRIDCard():
                     image1 = la.image.rotate(image, angle, expand=True)
                     image1 = la.image.image_to_array(image1)
                 else:
-                    image1 = self._image_str
+                    image1 = la.image.image_to_array(image)
                 result = self.ocr.ocr(image1, cls=False)
 
                 if not state_up:
@@ -588,7 +586,7 @@ class OCRIDCard():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
-    def metrics(self, image_list):
+    def metrics(self, image_list, label_list=None):
         name = 0
         sex = 0
         nation = 0
@@ -607,8 +605,11 @@ class OCRIDCard():
         user_organization = 0
         user_validity_period = 0
 
-        for i in image_list:
-            label = i.split('$$')[1:-1]
+        for r, i in enumerate(image_list):
+            if label_list is not None:
+                label = label_list[r].split('$$')[1:-1]
+            else:
+                label = i.split('$$')[1:-1]
             t = self.predict(i)['data']
             if isinstance(t, dict):
                 if len(t)>=6 and len(label)>=6:
