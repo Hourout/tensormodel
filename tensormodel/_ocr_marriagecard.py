@@ -626,7 +626,7 @@ class OCRMarriageCard():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
-    def metrics(self, image_list):
+    def metrics(self, image_list, label_list=None):
         name = 0
         date = 0
         ids = 0
@@ -655,8 +655,11 @@ class OCRMarriageCard():
         user_born_down = 0
         user_number_down = 0
 
-        for i in image_list:
-            label = i.split('$$')[1:-1]
+        for r, i in enumerate(image_list):
+            if label_list is not None:
+                label = label_list[r].split('$$')[1:-1]
+            else:
+                label = i.split('$$')[1:-1]
             t = self.predict(i)['data']
             if isinstance(t, dict):
                 if t['marriage_name']==label[0]:
