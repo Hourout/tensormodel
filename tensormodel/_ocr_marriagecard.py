@@ -31,7 +31,7 @@ class OCRMarriageCard():
         if ocr_result is not None:
             self._result = ocr_result
             self._direction_transform(image, use_ocr_result=True)
-            self._axis_transform_up()
+            self._axis_transform()
         else:
             if isinstance(image, str):
                 self._image = cv2.imread(image)
@@ -49,14 +49,14 @@ class OCRMarriageCard():
                     return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
                 else:
                     return {'data':self._info, 'angle':0, 'error':self._error}
-            self._axis_transform_up()
+            self._axis_transform()
             for i in self._info:
                 if '图片模糊' in self._info[i]:
                     self._temp_info = self._info.copy()
                     if self._show_axis:
                         self._temp_axis = self._axis.copy()
                     self._direction_transform(la.image.enhance_brightness(self._image, 0.6))
-                    self._axis_transform_up()
+                    self._axis_transform()
                     if isinstance(self._info, str):
                         self._info = self._temp_info.copy()
                         if self._show_axis:
@@ -135,7 +135,7 @@ class OCRMarriageCard():
             self._info = '图片模糊:未识别出有效信息'
             self._error = '图片模糊:未识别出有效信息'
     
-    def _axis_transform_up(self):
+    def _axis_transform(self):
         if len(self._result)==0:
             return 0
         fix_x = []
