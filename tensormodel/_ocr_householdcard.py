@@ -793,7 +793,8 @@ class OCRHouseholdCard():
                   'register_marriage_acc':marriage/register_marriage, 'register_military_acc':military/register_military,
                   'register_career_acc':career/register_career, 'register_city_acc':city/register_city, 
                   'register_address_acc':address/register_address, 'register_date_acc':date/register_date,
-                  'register_content_acc':content/register_content, 'totalmean_acc':ok/total}
+                  'register_content_acc':content/register_content, 'totalmean_acc':ok/total,
+                  'test_sample_nums':len(image_list)}
         return {i:round(result[i], 4) for i in result}
 
 
