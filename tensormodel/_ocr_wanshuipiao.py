@@ -420,6 +420,37 @@ class OCRWanShuiPiao():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
         
+    def metrics1(self, data, name_list=None, debug=False):
+        if la.gfile.isfile(data):
+            with open(data) as f:
+                data = f.read().replace('\n', '').replace('}', '}\n').strip().split('\n')
+            data = [eval(i) for i in data]
+        if name_list is None:
+            name_list = ['tax_date', 'tax_organ', 'tax_user_name', 'tax_class', 'tax_amount',
+                         'tax_remark_address', 'tax_remark_amount']
+
+        score_a = {i:0 for i in name_list}
+        score_b = {i:0.0000001 for i in name_list}
+        error_list = []
+        for i in data:
+            error = {'image':i.pop('image')}
+            t = self.predict(error['image'])['data']
+            if isinstance(t, dict):
+                for j in i:
+                    if t[j]==i[j]:
+                        score_a[j] +=1
+                    else:
+                        error[j] = {'pred':t[j], 'label':i[j]}
+                    score_b[j] += 1
+
+        score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a}
+        score['totalmean_acc'] = sum([score_a[i] for i in score_a])/sum([score_b[i] for i in score_b])
+        score = {i:round(score[i], 4) for i in score}
+        score['test_sample_nums'] = len(data)
+        if debug:
+            score['error'] = error_list
+        return score
+    
     def metrics(self, image_list, label_list=None, debug=False):
         date = 0
         organ = 0

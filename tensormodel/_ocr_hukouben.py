@@ -662,47 +662,36 @@ class OCRHuKouBen():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
-    def metrics1(self, data, debug=False):
+    def metrics1(self, data, name_list=None, debug=False):
         if la.gfile.isfile(data):
             with open(data) as f:
                 data = f.read().replace('\n', '').replace('}', '}\n').strip().split('\n')
             data = [eval(i) for i in data]
-        score_shouye_a = {'type':0, 'name':0, 'id':0, 'address':0, 'date':0}
-        score_shouye_b = {f'household_{i}':0.0000001 for i in score_shouye_a}
+        if name_list is None:
+            name_list = ['household_type', 'household_name', 'household_id', 'household_address', 'household_date',
+                         'register_name', 'register_previous_name', 'register_relation', 'register_sex', 
+                         'register_born', 'register_number', 'register_education', 'register_service_office', 
+                         'register_marriage', 'register_military', 'register_career','register_city', 
+                         'register_address', 'register_date', 'register_content']
 
-        score_neirongye_a = {'name':0, 'previous_name':0, 'relation':0, 'sex':0, 'born':0, 'number':0, 
-                             'education':0, 'service_office':0, 'marriage':0, 'military':0, 'career':0,
-                             'city':0, 'address':0, 'date':0, 'content':0}
-        score_neirongye_b = {f'register_{i}':0.0000001 for i in score_neirongye_a}
-        
+        score_a = {i:0 for i in name_list}
+        score_b = {i:0.0000001 for i in name_list}
         error_list = []
         for i in data:
             error = {'image':i.pop('image')}
             t = self.predict(error['image'])['data']
             if isinstance(t, dict):
-                if 'household' in list(i)[0]:
-                    for j in i:
-                        if t[j]==i[j]:
-                            score_shouye_a[j] +=1
-                        else:
-                            error[j] = {'pred':t[j], 'label':i[j]}
-                        score_shouye_b += 1
-                elif 'register' in list(i)[0]:
-                    for j in i:
-                        if t[j]==i[j]:
-                            score_neirongye_a[j] +=1
-                        else:
-                            error[j] = {'pred':t[j], 'label':i[j]}
-                        score_neirongye_b += 1
+                for j in i:
+                    if t[j]==i[j]:
+                        score_a[j] +=1
+                    else:
+                        error[j] = {'pred':t[j], 'label':i[j]}
+                    score_b[j] += 1
         
-        total_a = sum([score_shouye_a[i] for i in score_shouye_a])+sum([score_neirongye_a[i] for i in score_neirongye_a])
-        total_b = sum([score_shouye_b[i] for i in score_shouye_b])+sum([score_neirongye_b[i] for i in score_neirongye_b])
-        score_shouye = {f'household_{i}_acc':score_shouye_a[i]/score_shouye_b[f'household_{i}'] for i in score_shouye_a}
-        score_neirongye = {f'register_{i}_acc':score_neirongye_a[i]/score_neirongye_b[f'register_{i}'] for i in score_neirongye_a}
-        score = {**score_shouye, **score_neirongye}
-        score['totalmean_acc'] = total_a/total_b
-        score['test_sample_nums'] = len(data)
+        score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a}
+        score['totalmean_acc'] = sum([score_a[i] for i in score_a])/sum([score_b[i] for i in score_b])
         score = {i:round(score[i], 4) for i in score}
+        score['test_sample_nums'] = len(data)
         if debug:
             score['error'] = error_list
         return score
