@@ -20,6 +20,7 @@ class OCRWanShuiPiao():
         self._char_tax_amount = ['金额合计']
         self._char_tax_ticket_filler = ['填票人']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        self._char_class = ['翼', '奥', '奖']
         
     def predict(self, image, axis=False, ocr_result=None):
         self._axis = None
@@ -245,10 +246,9 @@ class OCRWanShuiPiao():
                                     sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
         return axis_true
         
-    def _fit_characters(self, axis_true):
+    def _fit_characters(self, axis):
         self._axis = axis_true.copy()
-        for i in axis_true:
-            axis_true[i] = tuple(axis_true[i])
+        axis_true = {i:tuple(axis[i]) for i in axis}
         
         tax_date = ''
         tax_organ = ''
@@ -342,18 +342,38 @@ class OCRWanShuiPiao():
 #                     self._axis['tax_date'] = [x, y]+i[0][2]
                     continue
 
-        if '图片模糊' in self._info['tax_date'] and tax_date!='':
-            self._info['tax_date'] = tax_date
+        if '图片模糊' in self._info['tax_date'] and len(tax_date)>8:
+            if tax_date[5]=='0':
+                tax_date = tax_date[:5]+tax_date[6:]
+            if tax_date[-3]=='0':
+                tax_date = tax_date[:-3]+tax_date[-2:]
+            self._info['tax_date'] = tax_date.replace(' ', '')
         if '图片模糊' in self._info['tax_organ'] and tax_organ!='':
             self._info['tax_organ'] = tax_organ[:tax_organ.find('税务局')+3]
         tax_class = '|'.join(tax_class)
-        if '图片模糊' in self._info['tax_class'] and tax_class!='':
+        for i in self._char_class:
+            tax_class = tax_class.replace(i, '契')
+        if '图片模糊' in self._info['tax_class'] and len(tax_class)>1:
             self._info['tax_class'] = tax_class
+        else:
+            self._info['tax_class'] = '契税'
         if 'tax_remark' in axis_true:
             temp = self.remark_function(tax_remark)
             for i in temp:
                 self._info[i if 'tax_remark_' in i else 'tax_remark_'+i] = temp[i]
         self._info['tax_amount'] = self._info['tax_amount'].replace('￥', '¥').replace(',', '').replace('，', '')
+        self._info['tax_amount'] = self._info['tax_amount'][:-3].replace('.', '')+self._info['tax_amount'][-3:]
+        if self._info['tax_amount'].count('.')==0:
+            self._info['tax_amount'] = self._info['tax_amount'][:-2]+'.'+self._info['tax_amount'][-2:]
+        if self._info['tax_amount'][0]!='¥':
+            if self._info['tax_amount'][0] in self._char_number:
+                self._info['tax_amount'] = '¥'+self._info['tax_amount']
+            else:
+                self._info['tax_amount'] = '¥'+self._info['tax_amount'][1:]
+        
+        for i in self._info:
+            if '图片模糊' in self._info[i]:
+                self._info[i] = ''
 
 #         try:
 #             if len(fix_x)>0:

@@ -249,8 +249,7 @@ class OCRHuKouBen():
         
     def _fit_characters_neirong(self, axis):
         self._axis = axis.copy()
-        for i in axis:
-            axis_true[i] = tuple(axis[i])
+        axis_true = {i:tuple(axis[i]) for i in axis}
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
@@ -521,8 +520,7 @@ class OCRHuKouBen():
 
     def _fit_characters_shouye(self, axis):
         self._axis = axis.copy()
-        for i in axis:
-            axis_true[i] = tuple(axis[i])
+        axis_true = {i:tuple(axis[i]) for i in axis}
         address = ''
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
