@@ -345,12 +345,15 @@ class OCRWanShuiPiao():
         if '图片模糊' in self._info['tax_date'] and tax_date!='':
             self._info['tax_date'] = tax_date
         if '图片模糊' in self._info['tax_organ'] and tax_organ!='':
-            self._info['tax_organ'] = tax_organ
+            self._info['tax_organ'] = tax_organ[:tax_organ.find('税务局')+3]
         tax_class = '|'.join(tax_class)
         if '图片模糊' in self._info['tax_class'] and tax_class!='':
             self._info['tax_class'] = tax_class
         if 'tax_remark' in axis_true and tax_remark!='':
-            self._info['tax_remark'] = self.remark_function(tax_remark)
+            temp = self.remark_function(tax_remark)
+            for i in temp:
+                self._info[i if 'tax_remark_' in i else 'tax_remark_'+i] = temp[i]
+        self._info['tax_amount'] = self._info['tax_amount'].replace('￥', '¥').replace(',', '').replace('，', '')
 
 #         try:
 #             if len(fix_x)>0:
