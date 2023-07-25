@@ -247,7 +247,7 @@ class OCRWanShuiPiao():
         return axis_true
         
     def _fit_characters(self, axis):
-        self._axis = axis_true.copy()
+        self._axis = axis.copy()
         axis_true = {i:tuple(axis[i]) for i in axis}
         
         tax_date = ''
