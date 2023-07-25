@@ -349,7 +349,7 @@ class OCRWanShuiPiao():
         tax_class = '|'.join(tax_class)
         if '图片模糊' in self._info['tax_class'] and tax_class!='':
             self._info['tax_class'] = tax_class
-        if 'tax_remark' in axis_true and tax_remark!='':
+        if 'tax_remark' in axis_true:
             temp = self.remark_function(tax_remark)
             for i in temp:
                 self._info[i if 'tax_remark_' in i else 'tax_remark_'+i] = temp[i]
