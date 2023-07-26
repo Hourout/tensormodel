@@ -456,14 +456,15 @@ class OCRWanShuiPiao():
             try:
                 t = self.predict(error['image'])['data']
                 if isinstance(t, dict):
-                    for j in i:
-                        if t[j]==i[j]:
-                            score_a[j] +=1
-                        else:
-                            error[j] = {'pred':t[j], 'label':i[j]}
+                    for j in name_list:
+                        if j in t and j in i:
+                            if t[j]==i[j]:
+                                score_a[j] +=1
+                            else:
+                                error[j] = {'pred':t[j], 'label':i[j]}
                         score_b[j] += 1
             except:
-                for j in i:
+                for j in name_list:
                     score_b[j] += 1
                 error['error'] = 'program error'
             if len(error)>1:
