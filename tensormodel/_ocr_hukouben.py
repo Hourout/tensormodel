@@ -687,7 +687,7 @@ class OCRHuKouBen():
                                 score_a[j] +=1
                             else:
                                 error[j] = {'pred':t[j], 'label':i[j]}
-                        score_b[j] += 1
+                            score_b[j] += 1
             except:
                 for j in name_list:
                     score_b[j] += 1

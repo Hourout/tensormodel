@@ -357,7 +357,7 @@ class OCRWanShuiPiao():
                         self._info['tax_date'] = f"{i[1][0][:4]}年{int(i[1][0][5:7])}月{int(i[1][0][8:10])}日"
                         break
         if '图片模糊' in self._info['tax_organ'] and tax_organ!='':
-            self._info['tax_organ'] = analysis_organ(tax_organ)
+            self._info['tax_organ'] = self._analysis_tax_organ(tax_organ)
         tax_class = '|'.join([i for i in tax_class if i not in ['已完税']])
         for i in self._char_class:
             tax_class = tax_class.replace(i, '契')
@@ -374,16 +374,8 @@ class OCRWanShuiPiao():
                 if '￥' in i[1][0] or '¥' in i[1][0]:
                     self._info['tax_amount'] = i[1][0].replace(' ', '')
                     break
-        self._info['tax_amount'] = self._info['tax_amount'].replace('￥', '¥').replace(',', '').replace('，', '')
-        self._info['tax_amount'] = self._info['tax_amount'][:-3].replace('.', '')+self._info['tax_amount'][-3:]
-        if self._info['tax_amount'].count('.')==0:
-            self._info['tax_amount'] = self._info['tax_amount'][:-2]+'.'+self._info['tax_amount'][-2:]
-        if self._info['tax_amount'][0]!='¥':
-            if self._info['tax_amount'][0] in self._char_number:
-                self._info['tax_amount'] = '¥'+self._info['tax_amount']
-            else:
-                self._info['tax_amount'] = '¥'+self._info['tax_amount'][1:]
-        
+        self._info['tax_amount'] = self._analysis_tax_amount(self._info['tax_amount'])
+
         for i in self._info:
             if '图片模糊' in self._info[i]:
                 self._info[i] = ''
@@ -391,6 +383,40 @@ class OCRWanShuiPiao():
     
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
+    
+    def _analysis_tax_amount(self, data):
+        amount = data.replace('￥', '¥').replace(',', '').replace('，', '')
+        amount = amount[:-3].replace('.', '')+amount[-3:]
+        if amount.count('.')==0:
+            amount = amount[:-2]+'.'+amount[-2:]
+        amount = ('¥' + amount).replace('¥¥', '¥')
+        return amount
+    
+    def _analysis_tax_organ(self, data):
+        organ = data
+        for i,j in [('厨','局'), ('积','税')]:
+            if i in organ:
+                organ = organ.replace(i, j)
+        if '务局' in data:
+            organ = data[:data.find('务局')+2]
+
+            temp = organ[::-1]
+            for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+                if i in temp:
+                    temp = temp[:temp.find(i)]
+            organ = temp[::-1]
+
+            for i in ['税务机关', '所']:
+                if organ.startswith(i):
+                    organ = organ[organ.find(i)+len(i):]
+
+            if '国家' in organ:
+                organ = f"国家税务总局{organ[organ.find('局')+1:][:-3]}税务局"
+            else:
+                organ = f"{organ[:-5]}地方税务局"
+        else:
+            organ = ''
+        return organ
     
     def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
         if image is None:
@@ -473,7 +499,7 @@ class OCRWanShuiPiao():
                                 score_a[j] +=1
                             else:
                                 error[j] = {'pred':t[j], 'label':i[j]}
-                        score_b[j] += 1
+                            score_b[j] += 1
             except:
                 for j in name_list:
                     score_b[j] += 1
@@ -632,28 +658,3 @@ def remark(remark):
         address = ''
     return {'tax_remark_amount':amount, 'tax_remark_address':address}
 
-def analysis_organ(data):
-    organ = data
-    for i,j in [('厨','局'), ('积','税')]:
-        if i in organ:
-            organ = organ.replace(i, j)
-    if '务局' in data:
-        organ = data[:data.find('务局')+2]
-        
-        temp = organ[::-1]
-        for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
-            if i in temp:
-                temp = temp[:temp.find(i)]
-        organ = temp[::-1]
-        
-        for i in ['税务机关', '所']:
-            if organ.startswith(i):
-                organ = organ[organ.find(i)+len(i):]
-        
-        if '国家' in organ:
-            organ = f"国家税务总局{organ[organ.find('局')+1:][:-3]}税务局"
-        else:
-            organ = f"{organ[:-5]}地方税务局"
-    else:
-        organ = ''
-    return organ
