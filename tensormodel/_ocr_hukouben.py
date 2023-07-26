@@ -660,7 +660,7 @@ class OCRHuKouBen():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
-    def metrics1(self, data, name_list=None, debug=False):
+    def metrics(self, data, name_list=None, debug=False):
         if la.gfile.isfile(data):
             with open(data) as f:
                 data = f.read().replace('\n', '').replace('}', '}\n').strip().split('\n')
@@ -703,7 +703,7 @@ class OCRHuKouBen():
             score['error'] = error_list
         return score
     
-    def metrics(self, image_list, label_list=None, debug=False):
+    def metrics1(self, image_list, label_list=None, debug=False):
         types = 0
         names = 0
         ids = 0
