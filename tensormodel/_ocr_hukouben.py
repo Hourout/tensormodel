@@ -687,11 +687,13 @@ class OCRHuKouBen():
                         else:
                             error[j] = {'pred':t[j], 'label':i[j]}
                         score_b[j] += 1
-                n += 1
             except:
+                for j in i:
+                    score_b[j] += 1
                 error['error'] = 'program error'
             if len(error)>1:
                 error_list.append(error)
+            n += 1
         
         score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a}
         score['totalmean_acc'] = sum([score_a[i] for i in score_a])/sum([score_b[i] for i in score_b])

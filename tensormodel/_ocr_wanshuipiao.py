@@ -12,7 +12,7 @@ class OCRWanShuiPiao():
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
         self.remark_function = remark_function
         self._keys = []
-        self._char_tax_id = ['No']
+#         self._char_tax_id = ['No']
         self._char_tax_date = ['填发日期']
         self._char_tax_organ = ['税务机关']
         self._char_tax_user_id = ['纳税人识别号']
@@ -20,7 +20,7 @@ class OCRWanShuiPiao():
         self._char_tax_amount = ['金额合计']
         self._char_tax_ticket_filler = ['填票人']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        self._char_class = ['翼', '奥', '奖']
+        self._char_class = ['翼', '奥', '奖', '樊']
         
     def predict(self, image, axis=False, ocr_result=None):
         self._axis = None
@@ -122,7 +122,9 @@ class OCRWanShuiPiao():
                 if rank==sorted(rank) and len(rank)>1:
                     self._result = result.copy()
                     self._angle = angle
-                    self._keys = ['tax_id', 'tax_date', 'tax_organ', 'tax_user_id', 'tax_user_name', 
+                    self._keys = [
+#                         'tax_id', 
+                        'tax_date', 'tax_organ', 'tax_user_id', 'tax_user_name', 
                                   'tax_class', 'tax_amount', 'tax_ticket_filler']
                     if self.remark_function is not None:
                         self._keys.append('tax_remark')
@@ -130,7 +132,7 @@ class OCRWanShuiPiao():
                     
         self._info = {}
         if self._angle!=-1:
-            self._info['tax_id'] = '图片模糊:未识别出税票编号'
+#             self._info['tax_id'] = '图片模糊:未识别出税票编号'
             self._info['tax_date'] = '图片模糊:未识别出填发日期'
             self._info['tax_organ'] = '图片模糊:未识别出税务机关'
             self._info['tax_user_id'] = '图片模糊:未识别出纳税人识别号'
@@ -156,16 +158,16 @@ class OCRWanShuiPiao():
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
-            if 'tax_id' not in axis_true:
-                for char in self._char_tax_id:
-                    if char in i[1][0]:
-                        axis_true['tax_id'] = i[0][0]+i[0][2]
-                        axis_dict['tax_organ'].append(([x+w*0.3, y+h, x+w*1.8, y+h*2.8], 0.8))
-                        axis_dict['tax_date'].append(([x-w*1.8, y+h*2, x-w*0.5, y+h*3], 0.6))
-                        axis_dict['tax_user_name'].append(([x-w*0.4, y+h*3, x+w*1.4, y+h*5.5], 0.6))
-                        break
-                if 'tax_id' in axis_true:
-                    continue
+#             if 'tax_id' not in axis_true:
+#                 for char in self._char_tax_id:
+#                     if char in i[1][0]:
+#                         axis_true['tax_id'] = i[0][0]+i[0][2]
+#                         axis_dict['tax_organ'].append(([x+w*0.3, y+h, x+w*1.8, y+h*2.8], 0.8))
+#                         axis_dict['tax_date'].append(([x-w*1.8, y+h*2, x-w*0.5, y+h*3], 0.6))
+#                         axis_dict['tax_user_name'].append(([x-w*0.4, y+h*3, x+w*1.4, y+h*5.5], 0.6))
+#                         break
+#                 if 'tax_id' in axis_true:
+#                     continue
             if 'tax_date' not in axis_true:
                 for char in self._char_tax_date:
                     if char in i[1][0]:
@@ -264,14 +266,14 @@ class OCRWanShuiPiao():
                 w = 1
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
-            if '图片模糊' in self._info['tax_id'] and 'tax_id' in axis_true:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_id'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_id'][0])            
-                if h1/h>0.6 and w1/w>0.6:
-                    self._info['tax_id'] = i[1][0]
-                    self._axis['tax_id'] = [x, y]+i[0][2]
-                if '图片模糊' not in self._info['tax_id']:
-                    continue
+#             if '图片模糊' in self._info['tax_id'] and 'tax_id' in axis_true:
+#                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_id'][1])
+#                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_id'][0])            
+#                 if h1/h>0.6 and w1/w>0.6:
+#                     self._info['tax_id'] = i[1][0]
+#                     self._axis['tax_id'] = [x, y]+i[0][2]
+#                 if '图片模糊' not in self._info['tax_id']:
+#                     continue
             if 'tax_organ' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_organ'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_organ'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_organ'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_organ'][0])            
@@ -375,13 +377,6 @@ class OCRWanShuiPiao():
             if '图片模糊' in self._info[i]:
                 self._info[i] = ''
 
-#         try:
-#             if len(fix_x)>0:
-#                 fix_x = sum(fix_x)/len(fix_x)
-#                 self._axis['household_type'][0] = fix_x
-#                 self._axis['household_id'][0] = fix_x
-#         except:
-#             pass
     
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
@@ -467,11 +462,13 @@ class OCRWanShuiPiao():
                         else:
                             error[j] = {'pred':t[j], 'label':i[j]}
                         score_b[j] += 1
-                n += 1
             except:
+                for j in i:
+                    score_b[j] += 1
                 error['error'] = 'program error'
             if len(error)>1:
                 error_list.append(error)
+            n += 1
 
         score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a}
         score['totalmean_acc'] = sum([score_a[i] for i in score_a])/sum([score_b[i] for i in score_b])
