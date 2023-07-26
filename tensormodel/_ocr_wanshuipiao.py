@@ -351,7 +351,7 @@ class OCRWanShuiPiao():
                 tax_date = tax_date[:-3]+tax_date[-2:]
             self._info['tax_date'] = tax_date.replace(' ', '')
         if '图片模糊' in self._info['tax_organ'] and tax_organ!='':
-            self._info['tax_organ'] = tax_organ[:tax_organ.find('税务局')+3]
+            self._info['tax_organ'] = analysis_organ(tax_organ)
         tax_class = '|'.join(tax_class)
         for i in self._char_class:
             tax_class = tax_class.replace(i, '契')
@@ -618,3 +618,29 @@ def remark(remark):
     except:
         address = ''
     return {'tax_remark_amount':amount, 'tax_remark_address':address}
+
+def analysis_organ(data):
+    organ = data
+    for i,j in [('厨','局'), ('积','税')]:
+        if i in organ:
+            organ = organ.replace(i, j)
+    if '务局' in data:
+        organ = data[:data.find('务局')+2]
+        
+        temp = organ[::-1]
+        for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+            if i in temp:
+                temp = temp[:temp.find(i)]
+        organ = temp[::-1]
+        
+        for i in ['税务机关', '所']:
+            if organ.startswith(i):
+                organ = organ[organ.find(i)+len(i):]
+        
+        if '国家' in organ:
+            organ = f"国家税务总局{organ[organ.find('局')+1:][:-3]}税务局"
+        else:
+            organ = f"{organ[:-5]}地方税务局"
+    else:
+        organ = ''
+    return organ
