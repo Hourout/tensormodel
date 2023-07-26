@@ -560,18 +560,61 @@ class OCRWanShuiPiao():
 
 
 def remark(remark):
-    s = remark.replace('：',':').replace('，',',')
+    s = remark.replace('：',':').replace('，',',').replace(' ','')
     try:
-        address = s[s.find('地址')+2:s.find('权属')]
-        if address.startswith(':'):
-            address = address[1:]
-    except:
-        address = ''
-    try:
-        amount = s[s.find('计税金额'):]
-        for i in ['共有人', '房源编号', '房屋产权证书号']:
+        amount = s
+        for i,j in [('积','税'), ('全','金'), ('题','额'), ('卒','率')]:
+            amount = amount.replace(i, j)
+        amount = amount[amount.find('计税金额'):]
+        for i in ['共有人', '房源', '房屋产权证书号']:
             if i in amount:
                 amount = amount[:amount.find(i)]
+
+        if amount.count('计税金额')!=amount.count('税率'):
+            amount = ''
+
+        temp = amount[::-1]
+        index = -1
+        for r,i in enumerate(temp[:temp.find('率')]):
+            if i not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '.', '%']:
+                index = r
+        amount = temp[index+1:][::-1]
+
+        for i in amount:
+            if i not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '计', '税', '金', '额', ':', '.', '率', '%']:
+                amount = amount.replace(i, '')
+        amount = amount.replace('.计', '计').replace('税率:00', '税率:0.0')
+        if len(amount)<10:
+            amount = ''
     except:
         amount = ''
-    return {'tax_remark_address':address, 'tax_remark_amount':amount}
+        
+    try:
+        address = s
+        for i in ['地址', '位置', '址:']:
+            if i in address:
+                address = address[address.find(i)+len(i):]
+        for i in ['权属', '权届转移', '房屋面积', '交易面积']:
+            if i in address:
+                address = address[:address.find(i)]
+            
+        if ':' in address:
+            temp = address.split(':')
+            index = [sum([1 for j in ['街', '院', '室', '楼', '层', '门', '号'] if j in i]) for i in temp]
+            address = temp[index.index(max(index))]
+            
+        temp = address[::-1]
+        index = -1
+        for k in ['室', '楼', '层', '门', '号']:
+            if k in temp:
+                for r,i in enumerate(temp[:temp.find(k)]):
+                    if i in [',', '(', '（']:
+                        index = r
+                address = temp[index+1:][::-1]
+                break
+                
+        for i,j in [('号娄','号楼')]:
+            address = address.replace(i, j)
+    except:
+        address = ''
+    return {'tax_remark_amount':amount, 'tax_remark_address':address}
