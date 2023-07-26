@@ -20,7 +20,7 @@ class OCRWanShuiPiao():
         self._char_tax_amount = ['金额合计']
         self._char_tax_ticket_filler = ['填票人']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        self._char_class = ['翼', '奥', '奖', '樊']
+        self._char_class = ['翼', '奥', '奖', '樊', '靓']
         
     def predict(self, image, axis=False, ocr_result=None):
         self._axis = None
@@ -293,9 +293,10 @@ class OCRWanShuiPiao():
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_date'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_date'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_date'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_date'][0])            
                 if h1/h>0.6 and w1/w>0.6:
-                    tax_date += i[1][0]
-#                     self._axis['tax_date'] = [x, y]+i[0][2]
-                    continue
+                    if len(i[1][0].replace(' ', ''))==sum([1 for char in i[1][0].replace(' ', '') if char in ['0123456789年月日']]):
+                        tax_date += i[1][0].replace(' ', '')
+#                       self._axis['tax_date'] = [x, y]+i[0][2]
+                        continue
             if '图片模糊' in self._info['tax_user_id'] and 'tax_user_id' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_user_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_user_id'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_user_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_user_id'][0])            
@@ -344,12 +345,17 @@ class OCRWanShuiPiao():
 #                     self._axis['tax_date'] = [x, y]+i[0][2]
                     continue
 
-        if '图片模糊' in self._info['tax_date'] and len(tax_date)>8:
-            if tax_date[5]=='0':
-                tax_date = tax_date[:5]+tax_date[6:]
-            if tax_date[-3]=='0':
-                tax_date = tax_date[:-3]+tax_date[-2:]
-            self._info['tax_date'] = tax_date.replace(' ', '')
+        if '图片模糊' in self._info['tax_date']:
+            if f"{len(tax_date)}{tax_date.find('年')}{tax_date.find('月')}" in ['946', '1046', '1047', '1147'] and tax_date[-1]=='日':
+                self._info['tax_date'] = tax_date
+            else:
+                for i in self._result[0]:
+                    if len(i[1][0])==8 and sum([1 for j in i[1][0] if j in '0123456789'])==8:
+                        self._info['tax_date'] = f"{i[1][0][:4]}年{int(i[1][0][4:6])}月{int(i[1][0][6:8])}日"
+                        break
+                    if len(i[1][0])==10 and sum([1 for j in i[1][0] if j in '0123456789'])==8 and i[1][0][4]=='-' and i[1][0][7]=='-':
+                        self._info['tax_date'] = f"{i[1][0][:4]}年{int(i[1][0][5:7])}月{int(i[1][0][8:10])}日"
+                        break
         if '图片模糊' in self._info['tax_organ'] and tax_organ!='':
             self._info['tax_organ'] = analysis_organ(tax_organ)
         tax_class = '|'.join(tax_class)
@@ -363,6 +369,11 @@ class OCRWanShuiPiao():
             temp = self.remark_function(tax_remark)
             for i in temp:
                 self._info[i if 'tax_remark_' in i else 'tax_remark_'+i] = temp[i]
+        if '图片模糊' in self._info['tax_amount']:
+            for i in self._result[0]:
+                if '￥' in i[1][0] or '¥' in i[1][0]:
+                    self._info['tax_amount'] = i[1][0]
+                    break
         self._info['tax_amount'] = self._info['tax_amount'].replace('￥', '¥').replace(',', '').replace('，', '')
         self._info['tax_amount'] = self._info['tax_amount'][:-3].replace('.', '')+self._info['tax_amount'][-3:]
         if self._info['tax_amount'].count('.')==0:
