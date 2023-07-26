@@ -20,7 +20,7 @@ class OCRWanShuiPiao():
         self._char_tax_amount = ['金额合计']
         self._char_tax_ticket_filler = ['填票人']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-        self._char_class = ['翼', '奥', '奖', '樊', '靓']
+        self._char_class = ['翼', '奥', '奖', '樊', '靓', '超']
         
     def predict(self, image, axis=False, ocr_result=None):
         self._axis = None
@@ -358,7 +358,7 @@ class OCRWanShuiPiao():
                         break
         if '图片模糊' in self._info['tax_organ'] and tax_organ!='':
             self._info['tax_organ'] = analysis_organ(tax_organ)
-        tax_class = '|'.join(tax_class)
+        tax_class = '|'.join([i for i in tax_class if i not in ['已完税']])
         for i in self._char_class:
             tax_class = tax_class.replace(i, '契')
         if '图片模糊' in self._info['tax_class'] and len(tax_class)>1:
@@ -372,7 +372,7 @@ class OCRWanShuiPiao():
         if '图片模糊' in self._info['tax_amount']:
             for i in self._result[0]:
                 if '￥' in i[1][0] or '¥' in i[1][0]:
-                    self._info['tax_amount'] = i[1][0]
+                    self._info['tax_amount'] = i[1][0].replace(' ', '')
                     break
         self._info['tax_amount'] = self._info['tax_amount'].replace('￥', '¥').replace(',', '').replace('，', '')
         self._info['tax_amount'] = self._info['tax_amount'][:-3].replace('.', '')+self._info['tax_amount'][-3:]
@@ -595,7 +595,8 @@ def remark(remark):
         for i in amount:
             if i not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '计', '税', '金', '额', ':', '.', '率', '%']:
                 amount = amount.replace(i, '')
-        amount = amount.replace('.计', '计').replace('税率:00', '税率:0.0')
+        for i,j in [('.计','计'), ('税率:00','税率:0.0'), ('额','额:'), ('率', '率:'), ('::', ':')]:
+            amount = amount.replace(i, j)
         if len(amount)<10:
             amount = ''
     except:
