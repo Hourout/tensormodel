@@ -682,11 +682,12 @@ class OCRHuKouBen():
                 t = self.predict(error['image'])['data']
                 if isinstance(t, dict):
                     for j in name_list:
-                        if j in t and j in i:
-                            if t[j]==i[j]:
-                                score_a[j] +=1
-                            else:
-                                error[j] = {'pred':t[j], 'label':i[j]}
+                        if j in i:
+                            if j in t:
+                                if t[j]==i[j]:
+                                    score_a[j] +=1
+                                else:
+                                    error[j] = {'pred':t[j], 'label':i[j]}
                             score_b[j] += 1
             except:
                 for j in name_list:

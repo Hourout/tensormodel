@@ -346,6 +346,7 @@ class OCRWanShuiPiao():
                     continue
 
         if '图片模糊' in self._info['tax_date']:
+            tax_date = tax_date.replace(' ', '')
             if f"{len(tax_date)}{tax_date.find('年')}{tax_date.find('月')}" in ['946', '1046', '1047', '1147'] and tax_date[-1]=='日':
                 self._info['tax_date'] = tax_date
             else:
@@ -389,6 +390,8 @@ class OCRWanShuiPiao():
         amount = amount[:-3].replace('.', '')+amount[-3:]
         if amount.count('.')==0:
             amount = amount[:-2]+'.'+amount[-2:]
+        if amount[0] not in '¥0123456789':
+            amount = amount[1:]
         amount = ('¥' + amount).replace('¥¥', '¥')
         return amount
     
@@ -494,11 +497,12 @@ class OCRWanShuiPiao():
                 t = self.predict(error['image'])['data']
                 if isinstance(t, dict):
                     for j in name_list:
-                        if j in t and j in i:
-                            if t[j]==i[j]:
-                                score_a[j] +=1
-                            else:
-                                error[j] = {'pred':t[j], 'label':i[j]}
+                        if j in i:
+                            if j in t:
+                                if t[j]==i[j]:
+                                    score_a[j] +=1
+                                else:
+                                    error[j] = {'pred':t[j], 'label':i[j]}
                             score_b[j] += 1
             except:
                 for j in name_list:
