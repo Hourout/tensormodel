@@ -352,7 +352,14 @@ class OCRWanShuiPiao():
                             break
                     continue
                 if h1/h>0.6 and w1/w>0.6 and len(i[1][0])>1:
-                    self._info['tax_user_name'] = i[1][0].strip()
+                    temp = i[1][0].strip()
+                    if len(temp)==4:
+                        temp = temp[:2]+'|'+temp[2:]
+                    elif len(temp)==5:
+                        temp = temp[:2]+'|'+temp[2:]
+                    elif len(temp)==6:
+                        temp = temp[:3]+'|'+temp[3:]
+                    self._info['tax_user_name'] = temp
                     self._axis['tax_user_name'] = [x, y]+i[0][2]
                 if '图片模糊' not in self._info['tax_user_name']:
                     continue
