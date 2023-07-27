@@ -57,7 +57,7 @@ class OCRWanShuiPiao():
                     self._temp_info = self._info.copy()
                     if self._show_axis:
                         self._temp_axis = self._axis.copy()
-                    self._fit_direction(la.image.enhance_brightness(self._image, 0.8))
+                    self._fit_direction(la.image.enhance_brightness(self._image, 0.75))
                     ax = self._fit_axis()
                     self._fit_characters(ax)
                     if isinstance(self._info, str):
@@ -80,6 +80,9 @@ class OCRWanShuiPiao():
             if '图片模糊' in self._info[i]:
                 self._error = self._info[i]
                 break
+        for i in self._info:
+            if '图片模糊' in self._info[i]:
+                self._info[i] = ''
         if self._show_axis:
             return {'data':self._info, 'axis':self._axis, 'angle':angle, 'error':self._error}
         else:
@@ -337,7 +340,14 @@ class OCRWanShuiPiao():
                 if sum([1 for char in self._char_tax_user_name if char in i[1][0]])>0:
                     for char in self._char_tax_user_name:
                         if char in i[1][0] and len(i[1][0][i[1][0].find(char)+len(char):])>1:
-                            self._info['tax_user_name'] = i[1][0][i[1][0].find(char)+len(char):].strip()
+                            temp = i[1][0][i[1][0].find(char)+len(char):].strip()
+                            if len(temp)==4:
+                                temp = temp[:2]+'|'+temp[2:]
+                            elif len(temp)==5:
+                                temp = temp[:2]+'|'+temp[2:]
+                            elif len(temp)==6:
+                                temp = temp[:3]+'|'+temp[3:]
+                            self._info['tax_user_name'] = temp
                             self._axis['tax_user_name'] = [self._axis['tax_user_name'][0], i[0][0][1]]+i[0][2]
                             break
                     continue
@@ -438,8 +448,8 @@ class OCRWanShuiPiao():
         self._info['tax_amount'] = self._analysis_tax_amount(self._info['tax_amount'])
 
         for i in self._info:
-            if '图片模糊' in self._info[i]:
-                self._info[i] = ''
+            if self._info[i]=='':
+                self._info[i] = '图片模糊'
     
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
@@ -462,8 +472,8 @@ class OCRWanShuiPiao():
         for i,j in [('厨','局'), ('积','税'), ('同', '局')]:
             if i in organ:
                 organ = organ.replace(i, j)
-        if '务局' in data:
-            organ = data[:data.find('务局')+2]
+        if '务局' in organ:
+            organ = organ[:organ.find('务局')+2]
 
             temp = organ[::-1]
             for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
@@ -479,6 +489,8 @@ class OCRWanShuiPiao():
                 organ = f"国家税务总局{organ[organ.find('局')+1:][:-3]}税务局"
             else:
                 organ = f"{organ[:-5]}地方税务局"
+                
+            organ = organ.replace('北景','北京')
         else:
             organ = ''
         return organ
@@ -581,87 +593,6 @@ class OCRWanShuiPiao():
         if debug:
             score['error'] = error_list
         return score
-    
-    def metrics1(self, image_list, label_list=None, debug=False):
-        date = 0
-        organ = 0
-        user_name = 0
-        classs = 0
-        amount = 0
-        remark_address = 0
-        remark_amount = 0
-
-        tax_date = 0
-        tax_organ = 0
-        tax_user_name = 0
-        tax_class = 0
-        tax_amount = 0
-        tax_remark_address = 0
-        tax_remark_amount = 0
-
-        error_list = []
-        for r, i in enumerate(image_list):
-            error = {'image':i}
-            if label_list is None:
-                label = i.split('$$')[1:-1]
-            else:
-                label = label_list[r].split('$$')[1:-1]
-            t = self.predict(i)['data']
-            try:
-                if isinstance(t, dict):
-                    if t['tax_date']==label[0]:
-                        date += 1
-                    else:
-                        error['tax_date'] = {'pred':t['tax_date'], 'label':label[0]}
-                    if t['tax_organ']==label[1]:
-                        organ += 1
-                    else:
-                        error['tax_organ'] = {'pred':t['tax_organ'], 'label':label[1]}
-                    if t['tax_user_name']==label[2]:
-                        user_name += 1
-                    else:
-                        error['tax_user_name'] = {'pred':t['tax_user_name'], 'label':label[2]}
-                    if t['tax_class']==label[3]:
-                        classs += 1
-                    else:
-                        error['tax_class'] = {'pred':t['tax_class'], 'label':label[3]}
-                    if t['tax_amount']==label[4]:
-                        amount += 1
-                    else:
-                        error['tax_amount'] = {'pred':t['tax_amount'], 'label':label[4]}
-                    if t['tax_remark_address']==label[4]:
-                        remark_address += 1
-                    else:
-                        error['tax_remark_address'] = {'pred':t['tax_remark_address'], 'label':label[5]}
-                    if t['tax_remark_amount']==label[4]:
-                        remark_amount += 1
-                    else:
-                        error['tax_remark_amount'] = {'pred':t['tax_remark_amount'], 'label':label[6]}
-            except:
-                pass
-            tax_date += 1
-            tax_organ += 1
-            tax_user_name += 1
-            tax_class += 1
-            tax_amount += 1
-            tax_remark_address += 1
-            tax_remark_amount += 1
-            if len(error)>1:
-                error_list.append(error)
-
-        ok = (date+organ+user_name+classs+amount+remark_address+remark_amount)
-        total = (tax_date+tax_organ+tax_user_name+tax_class+tax_amount+tax_remark_address+tax_remark_amount)
-        result = {'tax_date_acc':date/tax_date, 'tax_organ_acc':organ/tax_organ, 
-                  'tax_user_name_acc':user_name/tax_user_name, 'tax_class_acc':classs/tax_class, 
-                  'tax_amount_acc':amount/tax_amount, 'tax_remark_address_acc':remark_address/tax_remark_address, 
-                  'tax_remark_amount_acc':remark_amount/tax_remark_amount, 'totalmean_acc':ok/total,
-                  'test_sample_nums':len(image_list)
-                 }
-        result = {i:round(result[i], 4) for i in result}
-        if debug:
-            result['error'] = error_list
-        return result
-
 
 def remark(remark):
     s = remark.replace('：',':').replace('，','').replace(' ','').replace(',','')
