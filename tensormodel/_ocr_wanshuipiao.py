@@ -11,6 +11,7 @@ class OCRWanShuiPiao():
     def __init__(self, ocr=None, remark_function=None):
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
         self.remark_function = remark_function
+        self.remark_logic = False if remark_function is None else True
         self._keys = []
 #         self._char_tax_id = ['No']
         self._char_tax_date = ['填发日期']
@@ -21,6 +22,7 @@ class OCRWanShuiPiao():
         self._char_tax_ticket_filler = ['填票人', '慎票人']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         self._char_class = ['翼', '奥', '奖', '樊', '靓', '超']
+        self._char_name = '阎段冼凌辜石顾齐祝乐虞伏夏穆练赖宇姓苗甄于盖许彭晏敖谌汤梅娄潘李华花陈阮苟池陆韦鲍卜宗管沙覃糜傅周龙耿徐项蓝孟游廉楚扬樊奚竺龚毕章阳党全郁萧张成连漕舒柏卞时巫庄叶文冯霍臧喻揭应蔺唐芦谷席郎桂常单薛丛吴黎佟黄保施闵官盛商侯季宋瞿胡范牛畅蒋秦宫纪苏颜伍巩滕万江杨詹严程童燕百韩任辛关仇计司卓谈谢聂岳桑迟封吕梁袁祁卢冷匡毛温左罗白柳马孙薄家习安涂古邬康仲隋殷沿僧庞尤木牟排贾郭边金孔谭朱葛姜郑位费宁高赵贺陶崔向熊翁栗明银褚柯卫姚强莫戚汪鞠来乔魏符史丁钱廖曲稽吉栾冉井洪都蔡和兰翟欧何刘甘姬易屠胥靳屈嵺查鲁车蒙田戴窦冀景包焦衣沈申曾邱尹邢名裴董丘王邸岑郝解刁饶米柴路台艾原邓俞邹苑余倪方晋郜鄢植荆林杜钟邵武曹房简'
         
     def predict(self, image, axis=False, ocr_result=None):
         self._axis = None
@@ -151,8 +153,8 @@ class OCRWanShuiPiao():
             self._info['tax_class'] = '图片模糊:未识别出税种'
             self._info['tax_amount'] = '图片模糊:未识别出金额合计'
             self._info['tax_ticket_filler'] = '图片模糊:未识别出填票人'
-            if self.remark_function is not None:
-                self._info['tax_remark'] = '图片模糊:未识别出备注内容'
+#             if self.remark_function is not None:
+#                 self._info['tax_remark'] = '图片模糊:未识别出备注内容'
         else:
             self._info = '图片模糊:未识别出有效信息'
             self._error = '图片模糊:未识别出有效信息'
@@ -185,7 +187,7 @@ class OCRWanShuiPiao():
                         if len(i[1][0])>5:
                             w = w*(len(char)+1)/len(i[1][0])
                         axis_true['tax_date'] = [x+w*1.2, y, x+w*4, y+h]
-                        axis_dict['tax_organ'].append(([x+w*6, y-h, x+w*9.5, y+h], 0.6))
+                        axis_dict['tax_organ'].append(([x+w*6, y-h*0.75, x+w*9.5, y+h], 0.8))
                         axis_dict['tax_user_name'].append(([x+w*4, y+h, x+w*7, y+h*3.5], 0.8))
                         axis_dict['tax_user_id'].append(([x-w*2, y+h, x+w*2.4, y+h*3.5], 0.8))
                         break
@@ -196,7 +198,7 @@ class OCRWanShuiPiao():
                     if char in i[1][0]:
                         if len(i[1][0])>4:
                             w = w*(len(char)+0.5)/len(i[1][0])
-                        axis_true['tax_organ'] = [x+w, y-h*0.5, x+w*5, y+h]
+                        axis_true['tax_organ'] = [x+w, y-h*0.75, x+w*5, y+h]
                         axis_dict['tax_id'].append(([x+w*0.3, y-h*2, x+w*3, y-h], 0.8))
                         axis_dict['tax_date'].append(([x-w*3.5, y, x-w, y+h], 0.8))
                         axis_dict['tax_user_name'].append(([x-w, y+h, x+w*2, y+h*3.5], 0.8))
@@ -211,8 +213,8 @@ class OCRWanShuiPiao():
                             w = w*(len(char)+0.5)/len(i[1][0])
                         axis_true['tax_user_id'] = [x+w*1.2, y-h*0.6, x+w*4.2, y+h*2]
                         axis_dict['tax_date'].append(([x+w*3.5, y-h*2, x+w*6, y-h], 0.8))
-                        axis_dict['tax_organ'].append(([x+w*7.2, y-h*2.5, x+w*10.2, y-h], 0.6))
-                        axis_dict['tax_user_name'].append(([x+w*6, y, x+w*8, y+h], 0.6))
+                        axis_dict['tax_organ'].append(([x+w*7.2, y-h*1.8, x+w*10.2, y-h*0.5], 0.6))
+                        axis_dict['tax_user_name'].append(([x+w*6, y-h*0.6, x+w*8, y+h*2], 0.6))
                         axis_dict['tax_class'].append(([x+w*1.5, y+h*3.5, x+w*3, y+h*14], 0.6))
                         break
                 if 'tax_user_id' in axis_true:
@@ -224,7 +226,7 @@ class OCRWanShuiPiao():
                             w = w*(len(char)+0.5)/len(i[1][0])
                         axis_true['tax_user_name'] = [x+w*1.2, y-h*0.6, x+w*4, y+h*2]
                         axis_dict['tax_date'].append(([x-w*1.5, y-h*2, x+w, y-h], 0.8))
-                        axis_dict['tax_organ'].append(([x+w*2.5, y-h*2.5, x+w*6, y-h], 0.8))
+                        axis_dict['tax_organ'].append(([x+w*2.5, y-h*1.8, x+w*6, y-h*0.5], 0.8))
                         axis_dict['tax_user_id'].append(([x-w*4, y, x-w*0.5, y+h], 0.8))
                         axis_dict['tax_class'].append(([x-w*3.8, y+h*3.5, x-w*2, y+h*14], 0.6))
                         break
@@ -241,7 +243,7 @@ class OCRWanShuiPiao():
                     if char in i[1][0]:
                         if len(i[1][0])>4:
                             w = w*(len(char)+0.5)/len(i[1][0])
-                        axis_true['tax_amount'] = [x+w*12.5, y, x+w*14, y+h]
+                        axis_true['tax_amount'] = [x+w*11.5, y-h*0.75, x+w*13.5, y+h*1.75]
                         axis_dict['tax_ticket_filler'].append(([x+w*4.5, y+h*4, x+w*6.5, y+h*5], 0.6))
                         if self.remark_function is not None:
                             axis_dict['tax_remark'].append(([x+w*6.5, y+h*1.5, x+w*13, y+h*9], 0.6))
@@ -297,21 +299,25 @@ class OCRWanShuiPiao():
 #                     self._axis['tax_id'] = [x, y]+i[0][2]
 #                 if '图片模糊' not in self._info['tax_id']:
 #                     continue
-            if 'tax_organ' in axis_true:
+            if '图片模糊' in self._info['tax_organ'] and 'tax_organ' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_organ'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_organ'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_organ'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_organ'][0])            
-                if h1/h>0.6 and w1/w>0.6:
-                    if '税务机关' not in i[1][0]:
-                        tax_organ += i[1][0]
-                        self._axis['tax_organ'] = [x, y]+i[0][2]
-                    else:
-                        tax_organ += i[1][0].replace(' ', '').replace('：', ':').split(':')[-1]
-                        self._axis['tax_organ'][3] = i[0][2][1]
-                    continue
-                if '税务机关' in i[1][0]:
-                    tax_organ += i[1][0].replace(' ', '').replace('：', ':').split(':')[-1]
-                    self._axis['tax_organ'][3] = i[0][2][1]
-                    continue
+                if sum([1 for char in self._char_tax_organ if char in i[1][0]])>0:
+                    for char in self._char_tax_organ:
+                        if char in i[1][0]:
+                            temp = i[1][0][i[1][0].find(char)+len(char):]
+                            if len(temp.replace('：', '').replace('（', '').replace('）', ''))>8:
+                                self._info['tax_organ'] = temp
+                                self._axis['tax_organ'][3] = i[0][2][1]
+                                continue
+                if h1/h>0.45 and w1/w>0.6:
+                    if sum([1 for char in i[1][0] if char not in '0123456789'])>8:
+                        if sum([1 for char in i[1][0] if char in '国家税务局市区地方'])>3:
+                            if sum([1 for char in i[1][0] if char not in '机关所办服厅：（）'])>8:
+#                                 print(i[1][0])
+                                self._info['tax_organ'] = i[1][0].replace(' ', '').replace('：', ':').split(':')[-1]
+                                self._axis['tax_organ'][3] = i[0][2][1]
+                                continue
             if 'tax_date' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_date'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_date'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_date'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_date'][0])            
@@ -348,23 +354,23 @@ class OCRWanShuiPiao():
                 if sum([1 for char in self._char_tax_user_name if char in i[1][0]])>0:
                     for char in self._char_tax_user_name:
                         if char in i[1][0] and len(i[1][0][i[1][0].find(char)+len(char):])>1:
-                            temp = i[1][0][i[1][0].find(char)+len(char):].strip()
+                            temp = i[1][0][i[1][0].find(char)+len(char):].strip().replace(' ', '')
                             if len(temp)==4:
                                 temp = temp[:2]+'|'+temp[2:]
                             elif len(temp)==5:
-                                temp = temp[:2]+'|'+temp[2:]
+                                temp = temp[:3]+'|'+temp[3:] if temp[3] in self._char_name else temp[:2]+'|'+temp[2:]
                             elif len(temp)==6:
                                 temp = temp[:3]+'|'+temp[3:]
                             self._info['tax_user_name'] = temp
                             self._axis['tax_user_name'] = [self._axis['tax_user_name'][0], i[0][0][1]]+i[0][2]
                             break
                     continue
-                if h1/h>0.6 and w1/w>0.6 and len(i[1][0])>1:
-                    temp = i[1][0].strip()
+                if h1/h>0.6 and w1/w>0.6 and len(i[1][0])>1 and sum([1 for char in i[1][0] if char in '税务机关所：'])<1:
+                    temp = i[1][0].strip().replace(' ', '')
                     if len(temp)==4:
                         temp = temp[:2]+'|'+temp[2:]
                     elif len(temp)==5:
-                        temp = temp[:2]+'|'+temp[2:]
+                        temp = temp[:3]+'|'+temp[3:] if temp[3] in self._char_name else temp[:2]+'|'+temp[2:]
                     elif len(temp)==6:
                         temp = temp[:3]+'|'+temp[3:]
                     self._info['tax_user_name'] = temp
@@ -388,7 +394,7 @@ class OCRWanShuiPiao():
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['tax_amount'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['tax_amount'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['tax_amount'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['tax_amount'][0])            
                 if h1/h>0.6 and w1/w>0.6 and len(i[1][0])>2:
-                    self._info['tax_amount'] = i[1][0]
+                    self._info['tax_amount'] = i[1][0].replace(' ', '')
                     self._axis['tax_amount'] = [x, y]+i[0][2]
                 if '图片模糊' not in self._info['tax_amount']:
                     continue
@@ -407,6 +413,7 @@ class OCRWanShuiPiao():
                     tax_remark += i[1][0]
                     continue
         
+#         print(self._info)
         if '图片模糊' in self._info['tax_date']:
             tax_date = tax_date.replace(' ', '').replace('：', '')
             if f"{len(tax_date)}{tax_date.find('年')}{tax_date.find('月')}" in ['946', '1046', '1047', '1147'] and tax_date[-1]=='日':
@@ -441,8 +448,6 @@ class OCRWanShuiPiao():
                                                           +self._info['tax_date'][self._info['tax_date'].find('月'):])
                             if 0<int(day)<32:
                                 self._info['tax_date'] = self._info['tax_date'][:self._info['tax_date'].find('月')+1]+str(int(day))+'日'
-        if '图片模糊' in self._info['tax_organ'] and tax_organ!='':
-            self._info['tax_organ'] = self._analysis_tax_organ(tax_organ)
         tax_class = '|'.join([i for i in tax_class if i not in ['已完税']])
         for i in self._char_class:
             tax_class = tax_class.replace(i, '契')
@@ -461,7 +466,9 @@ class OCRWanShuiPiao():
                     self._axis['tax_amount'] = i[0][0]+i[0][2]
                     break
         self._info['tax_amount'] = self._analysis_tax_amount(self._info['tax_amount'])
+        self._info['tax_organ'] = self._analysis_tax_organ(self._info['tax_organ'])
 
+#         print(self._info)
         for i in self._info:
             if self._info[i]=='':
                 self._info[i] = '图片模糊'
@@ -643,6 +650,8 @@ def remark(remark):
         
     try:
         address = s
+        address_info = ['街','区','街','院','室','楼','层','门','号','幢','栋','单元']
+        address_info_filter = '0123456789'+''.join(address_info)
         for i in ['地址', '位置', '址:', '置:']:
             if i in address:
                 address = address[address.find(i)+len(i):]
@@ -653,7 +662,7 @@ def remark(remark):
         
         if ':' in address:
             temp = address.split(':')
-            index = [sum([1 for j in ['街', '院', '室', '楼', '层', '门', '号', '幢', '栋'] if j in i]) for i in temp]
+            index = [sum([1 for j in address_info if j in i]) for i in temp]
             address = temp[index.index(max(index))]
             
         temp = address[::-1]
@@ -669,7 +678,9 @@ def remark(remark):
         for i,j in [('号娄','号楼')]:
             address = address.replace(i, j)
         
-        if sum([1 for i in ['区', '街', '院', '室', '楼', '层', '门', '号', '幢', '栋'] if i in address])<3:
+        if sum([1 for i in address_info if i in address])<3:
+            address = ''
+        if sum([1 for i in address if i not in address_info_filter])<3:
             address = ''
     except:
         address = ''
