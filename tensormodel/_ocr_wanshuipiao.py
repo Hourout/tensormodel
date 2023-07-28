@@ -10,8 +10,8 @@ __all__ = ['OCRWanShuiPiao']
 class OCRWanShuiPiao():
     def __init__(self, ocr=None, remark_function=None):
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
-        self.remark_function = remark_function
-        self.remark_logic = False if remark_function is None else True
+        self._remark_function = remark_function
+#         self.remark_logic = False if remark_function is None else True
         self._keys = []
 #         self._char_tax_id = ['No']
         self._char_tax_date = ['填发日期']
@@ -139,7 +139,7 @@ class OCRWanShuiPiao():
 #                         'tax_id', 
                         'tax_date', 'tax_organ', 'tax_user_id', 'tax_user_name', 
                                   'tax_class', 'tax_amount', 'tax_ticket_filler']
-                    if self.remark_function is not None:
+                    if self._remark_function is not None:
                         self._keys.append('tax_remark')
                     break
                     
@@ -245,7 +245,7 @@ class OCRWanShuiPiao():
                             w = w*(len(char)+0.5)/len(i[1][0])
                         axis_true['tax_amount'] = [x+w*11.5, y-h*0.75, x+w*13.5, y+h*1.75]
                         axis_dict['tax_ticket_filler'].append(([x+w*4.5, y+h*4, x+w*6.5, y+h*5], 0.6))
-                        if self.remark_function is not None:
+                        if self._remark_function is not None:
                             axis_dict['tax_remark'].append(([x+w*6.5, y+h*1.5, x+w*13, y+h*9], 0.6))
                         break
                 if 'tax_amount' in axis_true:
@@ -255,7 +255,7 @@ class OCRWanShuiPiao():
                     if char in i[1][0]:
                         axis_true['tax_ticket_filler'] = [x-w*0.5, y+h, x+w*1.5, y+h*3]
                         axis_dict['tax_amount'].append(([x+w*5.5, y-h*3.5, x+w*7.5, y-h*2], 0.4))
-                        if self.remark_function is not None:
+                        if self._remark_function is not None:
                             axis_dict['tax_remark'].append(([x+w*1.5, y-h*2, x+w*7.5, y+h*5], 0.8))
                         break
                 if 'tax_ticket_filler' in axis_true:
@@ -280,7 +280,7 @@ class OCRWanShuiPiao():
         tax_date = ''
         tax_organ = ''
         tax_class = []
-        if self.remark_function is not None:
+        if self._remark_function is not None:
             tax_remark = ''
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
@@ -456,7 +456,7 @@ class OCRWanShuiPiao():
         else:
             self._info['tax_class'] = '契税'
         if 'tax_remark' in axis_true:
-            temp = self.remark_function(tax_remark)
+            temp = self._remark_function(tax_remark)
             for i in temp:
                 self._info[i if 'tax_remark_' in i else 'tax_remark_'+i] = temp[i]
         if '图片模糊' in self._info['tax_amount']:
@@ -621,7 +621,7 @@ def remark(remark):
     s = remark.replace('：',':').replace('，','').replace(' ','').replace(',','')
     try:
         amount = s
-        for i,j in [('积','税'), ('全','金'), ('题','额'), ('卒','率')]:
+        for i,j in [('积','税'), ('全','金'), ('题','额'), ('频','额'), ('卒','率'), ('车','率'), ('事','率')]:
             amount = amount.replace(i, j)
         amount = amount[amount.find('计税金额'):]
         for i in ['共有人', '房源', '房屋产权证书号']:
