@@ -660,7 +660,7 @@ class OCRHuKouBen():
         else:
             return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
 
-    def metrics(self, data, name_list=None, debug=False):
+    def metrics(self, data, image_root, name_list=None, debug=False):
         if la.gfile.isfile(data):
             with open(data) as f:
                 data = f.read().replace('\n', '').replace('}', '}\n').strip().split('\n')
@@ -679,7 +679,7 @@ class OCRHuKouBen():
         for i in data:
             error = {'image':i.pop('image')}
             try:
-                t = self.predict(error['image'])['data']
+                t = self.predict(la.gfile.path_join(image_root, error['image']))['data']
                 if isinstance(t, dict):
                     for j in name_list:
                         if j in i:
