@@ -17,8 +17,8 @@ class OCRWanShuiPiao():
         self._char_tax_organ = ['税务机关']
         self._char_tax_user_id = ['纳税人识别号']
         self._char_tax_user_name = ['纳税人名称']
-        self._char_tax_amount = ['金额合计']
-        self._char_tax_ticket_filler = ['填票人']
+        self._char_tax_amount = [f'{i}{j}合计' for i in ['金','全'] for j in ['额','题','融']]
+        self._char_tax_ticket_filler = ['填票人', '慎票人']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         self._char_class = ['翼', '奥', '奖', '樊', '靓', '超']
         
@@ -183,7 +183,7 @@ class OCRWanShuiPiao():
                 for char in self._char_tax_date:
                     if char in i[1][0]:
                         if len(i[1][0])>5:
-                            w = w*5/len(i[1][0])
+                            w = w*(len(char)+1)/len(i[1][0])
                         axis_true['tax_date'] = [x+w*1.2, y, x+w*4, y+h]
                         axis_dict['tax_organ'].append(([x+w*6, y-h, x+w*9.5, y+h], 0.6))
                         axis_dict['tax_user_name'].append(([x+w*4, y+h, x+w*7, y+h*3.5], 0.8))
@@ -195,7 +195,7 @@ class OCRWanShuiPiao():
                 for char in self._char_tax_organ:
                     if char in i[1][0]:
                         if len(i[1][0])>4:
-                            w = w*4.5/len(i[1][0])
+                            w = w*(len(char)+0.5)/len(i[1][0])
                         axis_true['tax_organ'] = [x+w, y-h*0.5, x+w*5, y+h]
                         axis_dict['tax_id'].append(([x+w*0.3, y-h*2, x+w*3, y-h], 0.8))
                         axis_dict['tax_date'].append(([x-w*3.5, y, x-w, y+h], 0.8))
@@ -208,7 +208,7 @@ class OCRWanShuiPiao():
                 for char in self._char_tax_user_id:
                     if char in i[1][0]:
                         if len(i[1][0])>6:
-                            w = w*6.5/len(i[1][0])
+                            w = w*(len(char)+0.5)/len(i[1][0])
                         axis_true['tax_user_id'] = [x+w*1.2, y-h*0.6, x+w*4.2, y+h*2]
                         axis_dict['tax_date'].append(([x+w*3.5, y-h*2, x+w*6, y-h], 0.8))
                         axis_dict['tax_organ'].append(([x+w*7.2, y-h*2.5, x+w*10.2, y-h], 0.6))
@@ -221,7 +221,7 @@ class OCRWanShuiPiao():
                 for char in self._char_tax_user_name:
                     if char in i[1][0]:
                         if len(i[1][0])>5:
-                            w = w*5.5/len(i[1][0])
+                            w = w*(len(char)+0.5)/len(i[1][0])
                         axis_true['tax_user_name'] = [x+w*1.2, y-h*0.6, x+w*4, y+h*2]
                         axis_dict['tax_date'].append(([x-w*1.5, y-h*2, x+w, y-h], 0.8))
                         axis_dict['tax_organ'].append(([x+w*2.5, y-h*2.5, x+w*6, y-h], 0.8))
@@ -240,7 +240,7 @@ class OCRWanShuiPiao():
                 for char in self._char_tax_amount:
                     if char in i[1][0]:
                         if len(i[1][0])>4:
-                            w = w*4.5/len(i[1][0])
+                            w = w*(len(char)+0.5)/len(i[1][0])
                         axis_true['tax_amount'] = [x+w*12.5, y, x+w*14, y+h]
                         axis_dict['tax_ticket_filler'].append(([x+w*4.5, y+h*4, x+w*6.5, y+h*5], 0.6))
                         if self.remark_function is not None:
