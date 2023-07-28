@@ -28,6 +28,7 @@ class OCRWanShuiPiao():
         self._error = 'ok'
         self._angle = -1
         self._mode = ''
+        self._image_str = None
         if ocr_result is not None:
             self._result = ocr_result
             self._fit_direction(image, use_ocr_result=True)
@@ -35,6 +36,7 @@ class OCRWanShuiPiao():
             self._fit_characters(ax)
         else:
             if isinstance(image, str):
+                self._image_str = image
                 self._image = cv2.imread(image)
                 self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
                 self._image = la.image.array_to_image(self._image)
@@ -57,7 +59,10 @@ class OCRWanShuiPiao():
                     self._temp_info = self._info.copy()
                     if self._show_axis:
                         self._temp_axis = self._axis.copy()
-                    self._fit_direction(la.image.enhance_brightness(self._image, 0.75))
+                    if self._image_str is not None and self._angle==0:
+                        self._fit_direction(self._image_str)
+                    else:
+                        self._fit_direction(la.image.enhance_brightness(self._image, 0.75))
                     ax = self._fit_axis()
                     self._fit_characters(ax)
                     if isinstance(self._info, str):
@@ -92,9 +97,12 @@ class OCRWanShuiPiao():
         if use_ocr_result:
             self._angle = 0
         elif self._angle!=-1:
-            image1 = la.image.rotate(image, self._angle, expand=True)
-            image1 = la.image.image_to_array(image1)
-            self._result = self.ocr.ocr(image1, cls=False)
+            if self._image_str is not None and self._angle==0:
+                self._result = self.ocr.ocr(image, cls=False)
+            else:
+                image1 = la.image.rotate(image, self._angle, expand=True)
+                image1 = la.image.image_to_array(image1)
+                self._result = self.ocr.ocr(image1, cls=False)
         else:
             self._result = []
             for angle in [0, 90, 180, 270]:
@@ -569,7 +577,7 @@ class OCRWanShuiPiao():
                          'tax_remark_address', 'tax_remark_amount']
 
         score_a = {i:0 for i in name_list}
-        score_b = {i:0.0000001 for i in name_list}
+        score_b = {i:0 for i in name_list}
         error_list = []
         n = 0
         for i in data:
@@ -587,14 +595,15 @@ class OCRWanShuiPiao():
                             score_b[j] += 1
             except:
                 for j in name_list:
-                    score_b[j] += 1
+                    if j in i:
+                        score_b[j] += 1
                 error['error'] = 'program error'
             if len(error)>1:
                 error_list.append(error)
             n += 1
 
-        score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a}
-        score['totalmean_acc'] = sum([score_a[i] for i in score_a])/sum([score_b[i] for i in score_b])
+        score = {f'{i}_acc':score_a[i]/max(score_b[i], 0.0000001) for i in score_a}
+        score['totalmean_acc'] = sum([score_a[i] for i in score_a])/max(sum([score_b[i] for i in score_b]), 0.0000001)
         score = {i:round(score[i], 4) for i in score}
         score['test_sample_nums'] = len(data)
         if debug:
@@ -625,7 +634,7 @@ def remark(remark):
         for i in amount:
             if i not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '计', '税', '金', '额', ':', '.', '率', '%']:
                 amount = amount.replace(i, '')
-        for i,j in [('.计','计'), ('税率:00','税率:0.0'), ('额','额:'), ('率', '率:'), ('::', ':')]:
+        for i,j in [('.计','计'), (':', ''), ('率00','率0.0'), ('额','额:'), ('率', '率:')]:
             amount = amount.replace(i, j)
         if len(amount)<10:
             amount = ''
