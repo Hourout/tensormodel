@@ -117,7 +117,7 @@ class OCRWanShuiPiao():
                 
                 rank = [0,0,0,0,0,0]
                 for r, i in enumerate(result[0], start=1):
-                    if '填发日期' in i[1][0] or '税务机关' in i[1][0]:
+                    if '填发日期' in i[1][0] or '税务机关：' in i[1][0]:
                         rank[0] = r
                     elif '纳税人识别号' in i[1][0] or '纳税人名称' in i[1][0]:
                         rank[1] = r
