@@ -269,8 +269,6 @@ class OCRWanShuiPiao():
                                     sum([j[0][1]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
-#         axis_true
-        
         return axis_true
         
     def _fit_characters(self, axis):

@@ -17,7 +17,7 @@ class OCRJieHunZheng():
         self._char_marriage_name = ['持证人']
         self._char_marriage_date = ['登记日期']
         self._char_marriage_id = ['结婚证字号', '离婚证字号']
-        self._char_user_name = ['姓名']
+        self._char_user_name = ['姓名', '姓多']
         self._char_user_country = ['国籍', '国箱', '国馨', '国精']
         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         
@@ -27,13 +27,16 @@ class OCRJieHunZheng():
         self._show_axis = axis
         self._error = 'ok'
         self._angle = -1
+        self._image_str = None
         
         if ocr_result is not None:
             self._result = ocr_result
-            self._direction_transform(image, use_ocr_result=True)
-            self._axis_transform()
+            self._fit_direction(image, use_ocr_result=True)
+            ax = self._fit_axis()
+            self._fit_characters(ax)
         else:
             if isinstance(image, str):
+                self._image_str = image
                 self._image = cv2.imread(image)
                 self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
                 self._image = la.image.array_to_image(self._image)
@@ -41,22 +44,27 @@ class OCRJieHunZheng():
     #             self._image = la.image.color_convert(image)
             else:
                 self._image = image
-            self._direction_transform(self._image)
+            self._fit_direction(self._image)
             if isinstance(self._info, str):
-                self._direction_transform(la.image.enhance_brightness(self._image, 0.8))
+                self._fit_direction(la.image.enhance_brightness(self._image, 0.8))
             if isinstance(self._info, str):
                 if self._show_axis:
                     return {'data':self._info, 'axis':[], 'angle':0, 'error':self._error}
                 else:
                     return {'data':self._info, 'angle':0, 'error':self._error}
-            self._axis_transform()
+            ax = self._fit_axis()
+            self._fit_characters(ax)
             for i in self._info:
                 if '图片模糊' in self._info[i]:
                     self._temp_info = self._info.copy()
                     if self._show_axis:
                         self._temp_axis = self._axis.copy()
-                    self._direction_transform(la.image.enhance_brightness(self._image, 0.6))
-                    self._axis_transform()
+                    if self._image_str is not None and self._angle==0:
+                        self._fit_direction(self._image_str)
+                    else:
+                        self._fit_direction(la.image.enhance_brightness(self._image, 0.6))
+                    ax = self._fit_axis()
+                    self._fit_characters(ax)
                     if isinstance(self._info, str):
                         self._info = self._temp_info.copy()
                         if self._show_axis:
@@ -82,13 +90,16 @@ class OCRJieHunZheng():
         else:
             return {'data':self._info, 'angle':angle, 'error':self._error}
         
-    def _direction_transform(self, image, use_ocr_result=False):
+    def _fit_direction(self, image, use_ocr_result=False):
         if use_ocr_result:
             self._angle = 0
         elif self._angle!=-1:
-            image1 = la.image.rotate(image, self._angle, expand=True)
-            image1 = la.image.image_to_array(image1)
-            self._result = self.ocr.ocr(image1, cls=False)
+            if self._image_str is not None and self._angle==0:
+                self._result = self.ocr.ocr(image, cls=False)
+            else:
+                image1 = la.image.rotate(image, self._angle, expand=True)
+                image1 = la.image.image_to_array(image1)
+                self._result = self.ocr.ocr(image1, cls=False)
         else:
             self._result = []
             for angle in [0, 90, 180, 270]:
@@ -135,10 +146,9 @@ class OCRJieHunZheng():
             self._info = '图片模糊:未识别出有效信息'
             self._error = '图片模糊:未识别出有效信息'
     
-    def _axis_transform(self):
+    def _fit_axis(self):
         if len(self._result)==0:
             return 0
-        fix_x = []
         axis_true = defaultdict(list)
         axis_dict = defaultdict(list)
 
@@ -281,10 +291,13 @@ class OCRJieHunZheng():
                                     sum([j[0][1]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
                                     sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
-
-        self._axis = axis_true.copy()
-        for i in axis_true:
-            axis_true[i] = tuple(axis_true[i])
+        return axis_true
+        
+    def _fit_characters(self, axis):
+        self._axis = axis.copy()
+        axis_true = {i:tuple(axis[i]) for i in axis}
+        
+        fix_x = []
         step = 0
         step_name = 0
         for i in self._result[0]:
@@ -667,5 +680,4 @@ class OCRJieHunZheng():
         if debug:
             score['error'] = error_list
         return score
-    
     
