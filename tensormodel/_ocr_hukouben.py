@@ -675,7 +675,6 @@ class OCRHuKouBen():
         score_a = {i:0 for i in name_list}
         score_b = {i:0.0000001 for i in name_list}
         error_list = []
-        n = 0
         for i in data:
             error = {'image':i.pop('image')}
             try:
@@ -696,7 +695,6 @@ class OCRHuKouBen():
                 error['error'] = 'program error'
             if len(error)>1:
                 error_list.append(error)
-            n += 1
         
         score = {f'{i}_acc':score_a[i]/max(score_b[i], 0.0000001) for i in score_a}
         score['totalmean_acc'] = sum([score_a[i] for i in score_a])/max(sum([score_b[i] for i in score_b]), 0.0000001)
