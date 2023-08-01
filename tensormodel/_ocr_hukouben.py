@@ -11,19 +11,124 @@ class OCRHuKouBen():
     def __init__(self, ocr=None):
         self.ocr = paddleocr.PaddleOCR(show_log=False) if ocr is None else ocr
         self._keys = []
-        self._char_household_type = ['户别']
+        self._char_household_type = ['农业家庭户', '非农业家庭户', '非农业家庭户口', '非农业集体', '非农业集体户口',
+                                     '城市户口', '家庭户', '家庭户口']
         self._char_household_name = ['户主姓名', '户生姓名']
         self._char_household_id = ['户号']
         self._char_household_address = ['住址']
         self._char_register_name = ['姓名']
 #         self._char_number = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        self._aug_image = False
         
+    def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
+        if image is None:
+            image = self._image.copy()
+        angle = self._angle if axis is None else axis['angle']
+        axis = self._axis if axis is None else axis['axis']
+
+        if box_axis=='all':
+            box_axis = self._keys
+        elif isinstance(box_axis, str):
+            if box_axis in self._keys:
+                box_axis = [box_axis]
+            else:
+                raise ValueError(f'`box_axis` must be one of {self._keys}')
+        elif isinstance(box_axis, list):
+            for i in box_axis:
+                if i not in self._keys:
+                    raise ValueError(f'`{i}` not in {self._keys}')
+        else:
+            raise ValueError(f'`box_axis` must be one of {self._keys}')
+
+        if mask_axis is None:
+            mask_axis = []
+        elif mask_axis=='all':
+            mask_axis = self._keys
+        elif isinstance(mask_axis, str):
+            if mask_axis in self._keys:
+                mask_axis = [mask_axis]
+            else:
+                raise ValueError(f'`box_axis` must be one of {self._keys}')
+        elif isinstance(mask_axis, list):
+            for i in mask_axis:
+                if i not in self._keys:
+                    raise ValueError(f'`{i}` not in {self._keys}')
+        else:
+            raise ValueError(f'`box_axis` must be one of {self._keys}')
+
+        try:
+            if angle>0:
+                image = la.image.rotate(image, angle, expand=True)
+            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in box_axis if i not in mask_axis and i in axis]
+            if len(t)>0:
+                image = la.image.draw_box(image, t, width=2)
+            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in mask_axis and i in axis]
+            if len(t)>0:
+                image = la.image.draw_box(image, t, fill_color=(255,255,255), width=2)
+        except:
+            pass
+        return image
+    
+    def env_check(self):
+        env = la.utils.pip.freeze('paddleocr')['paddleocr']
+        if env>='2.6.1.3':
+            return 'Environment check ok.'
+        else:
+            return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
+
+    def metrics(self, data, image_root, name_list=None, debug=False):
+        if la.gfile.isfile(data):
+            with open(data) as f:
+                data = f.read().replace('\n', '').replace('}', '}\n').strip().split('\n')
+            data = [eval(i) for i in data]
+        if name_list is None:
+            name_list = ['household_type', 'household_name', 'household_id', 'household_address',
+                         'register_name', 'register_previous_name', 'register_relation', 'register_sex', 
+                         'register_born', 'register_number', 'register_education', 'register_service_office', 
+                         'register_marriage', 'register_military', 'register_career','register_city', 
+                         'register_address']
+
+        score_a = {i:0 for i in name_list}
+        score_b = {i:0.0000001 for i in name_list}
+        error_list = []
+        for i in data:
+            error = {'image':i.pop('image')}
+            try:
+                t = self.predict(la.gfile.path_join(image_root, error['image']))['data']
+                if isinstance(t, dict):
+                    for j in name_list:
+                        if j in i:
+                            if j in t:
+                                if t[j]==i[j]:
+                                    score_a[j] +=1
+                                else:
+                                    error[j] = {'pred':t[j], 'label':i[j]}
+                            score_b[j] += 1
+            except:
+                for j in name_list:
+                    if j in i:
+                        score_b[j] += 1
+                error['error'] = 'program error'
+            if len(error)>1:
+                error_list.append(error)
+        
+        score = {f'{i}_acc':score_a[i]/max(score_b[i], 0.0000001) for i in score_a}
+        score['totalmean_acc'] = sum([score_a[i] for i in score_a])/max(sum([score_b[i] for i in score_b]), 0.0000001)
+        score = {i:round(score[i], 4) for i in score}
+        score['test_sample_nums'] = len(data)
+        if debug:
+            score['error'] = error_list
+        return score
+    
     def predict(self, image, axis=False, ocr_result=None):
         self._axis = None
         self._show_axis = axis
         self._error = 'ok'
         self._angle = -1
         self._mode = ''
+        self._image_str = None
+        self._aug_image = False
+        
         if ocr_result is not None:
             self._result = ocr_result
             self._fit_direction(image, use_ocr_result=True)
@@ -31,6 +136,7 @@ class OCRHuKouBen():
             self._fit_characters(ax)
         else:
             if isinstance(image, str):
+                self._image_str = image
                 self._image = cv2.imread(image)
                 self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
                 self._image = la.image.array_to_image(self._image)
@@ -47,26 +153,28 @@ class OCRHuKouBen():
                 else:
                     return {'data':self._info, 'angle':0, 'error':self._error}
             self._transform()
-            for i in self._info:
-                if '图片模糊' in self._info[i]:
-                    self._temp_info = self._info.copy()
+            if sum([1 for i in self._info if '图片模糊' in self._info[i]])>0:
+                self._aug_image = True
+                self._temp_info = self._info.copy()
+                if self._show_axis:
+                    self._temp_axis = self._axis.copy()
+                if self._image_str is not None and self._angle==0:
+                    self._fit_direction(self._image_str)
+                else:
+                    self._fit_direction(la.image.enhance_brightness(self._image, 0.6))
+                self._transform()
+                if isinstance(self._info, str):
+                    self._info = self._temp_info.copy()
                     if self._show_axis:
                         self._temp_axis = self._axis.copy()
-                    self._fit_direction(la.image.enhance_brightness(self._image, 0.6))
-                    self._transform()
-                    if isinstance(self._info, str):
-                        self._info = self._temp_info.copy()
-                        if self._show_axis:
-                            self._temp_axis = self._axis.copy()
-                    else:
-                        for j in self._temp_info:
-                            if '图片模糊' not in self._temp_info[j]:
-                                self._info[j] = self._temp_info[j]
-                        if self._show_axis:
-                            for j in self._temp_axis:
-                                if j not in self._axis:
-                                    self._axis[j] = self._temp_axis[j]
-                    break
+                else:
+                    for j in self._temp_info:
+                        if '图片模糊' not in self._temp_info[j]:
+                            self._info[j] = self._temp_info[j]
+                    if self._show_axis:
+                        for j in self._temp_axis:
+                            if j not in self._axis:
+                                self._axis[j] = self._temp_axis[j]
         
         self._error = 'ok'
         angle = 0 if self._angle==-1 else self._angle
@@ -80,10 +188,15 @@ class OCRHuKouBen():
             return {'data':self._info, 'angle':angle, 'error':self._error}
     
     def _fit_direction(self, image, use_ocr_result=False):
-        if self._angle!=-1:
-            image1 = la.image.rotate(image, self._angle, expand=True)
-            image1 = la.image.image_to_array(image1)
-            self._result = self.ocr.ocr(image1, cls=False)
+        if use_ocr_result:
+            self._angle = 0
+        elif self._angle!=-1:
+            if self._image_str is not None and self._angle==0:
+                self._result = self.ocr.ocr(image, cls=False)
+            else:
+                image1 = la.image.rotate(image, self._angle, expand=True)
+                image1 = la.image.image_to_array(image1)
+                self._result = self.ocr.ocr(image1, cls=False)
         else:
             self._result = []
             for angle in [0, 90, 180, 270]:
@@ -159,7 +272,7 @@ class OCRHuKouBen():
             self._info['household_name'] = '图片模糊:未识别出户主'
             self._info['household_id'] = '图片模糊:未识别出户号'
             self._info['household_address'] = '图片模糊:未识别出住址'
-            self._info['household_date'] = '图片模糊:未识别出签发日期'
+#             self._info['household_date'] = '图片模糊:未识别出签发日期'
         elif self._mode == 'neirong':
             self._info['register_name'] = '图片模糊:未识别出姓名'
             self._info['register_relation'] = '图片模糊:未识别出与户主关系'
@@ -180,8 +293,8 @@ class OCRHuKouBen():
             self._info['register_career'] = '图片模糊:未识别出职业'
             self._info['register_city'] = '图片模糊:未识别出何时迁入本市县'
             self._info['register_address'] = '图片模糊:未识别出何时迁入本住址'
-            self._info['register_date'] = '图片模糊:未识别出登记日期'
-            self._info['register_content'] = '图片模糊:未识别出变更内容'
+#             self._info['register_date'] = '图片模糊:未识别出登记日期'
+#             self._info['register_content'] = '图片模糊:未识别出变更内容'
         else:
             self._info = '图片模糊:未识别出有效信息'
             self._error = '图片模糊:未识别出有效信息'
@@ -193,6 +306,205 @@ class OCRHuKouBen():
         elif self._mode == 'neirong':
             axis = self._fit_axis_neirong()
             self._fit_characters_neirong(axis)
+    
+    def _fit_axis_shouye(self):
+        if len(self._result)==0:
+            return 0
+        
+        axis_true = defaultdict(list)
+        axis_dict = defaultdict(list)
+
+        jitihu = False
+        axis_address = {}
+        for i in self._result[0]:
+            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
+            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            if h==0:
+                h = 1
+            if w==0:
+                w = 1
+            x = min(i[0][0][0], i[0][3][0])
+            y = min(i[0][0][1], i[0][1][1])
+            if 'household_type' not in axis_true:
+                for char in self._char_household_type:
+                    if char==i[1][0]:
+                        w = w*(1.2 if len(char)>4 else 1.5)
+                        axis_true['household_type'] = [x, y]+i[0][2]
+                        axis_dict['household_name'].append(([x+w*1.6, y-h*0.5, x+w*3.5, y+h*1.5], 0.6))
+                        axis_dict['household_id'].append(([x-w*0.2, y+h*1.5, x+w*0.8, y+h*3.5], 0.6))
+                        axis_dict['household_address'].append(([x+w*1.5, y+h*1.5, x+w*4, y+h*4], 0.6))
+                        break
+                if 'household_type' in axis_true:
+                    continue
+            if 'household_name' not in axis_true:
+                if '集体户名称' in i[1][0]:
+                    if len(i[1][0])>5:
+                        w = w*(len(char)+0.5)/len(i[1][0])
+                    axis_true['household_name'] = [x+w*1.1, y-h*0.5, x+w*3, y+h*1.5]
+                    axis_dict['household_type'].append(([x-w*1.75, y-h*0.5, x-w*0.25, y+h*1.5], 0.8))
+                    axis_dict['household_address'].append(([x-w*1.75, y+h*1.5, x+w*3, y+h*3.5], 0.8))
+                    jitihu = True
+                    continue
+                for char in self._char_household_name:
+                    if char in i[1][0]:
+                        if char in i[1][0]:
+                            if len(i[1][0])>4:
+                                w = w*(len(char)+0.5)/len(i[1][0])
+                            axis_true['household_name'] = [x+w, y-h*0.5, x+w*4, y+h*2]
+                            axis_dict['household_type'].append(([x-w*2, y-h*0.5, x-w*0.25, y+h*1.5], 0.8))
+                            axis_dict['household_id'].append(([x-w*2, y+h*1.5, x-w*0.75, y+h*3.5], 0.8))
+                            axis_dict['household_address'].append(([x+w*0.5, y+h*1.5, x+w*5, y+h*4], 0.8))
+                            break
+                if 'household_name' in axis_true:
+                    continue
+            if i[1][0] in ['住'] and '住' not in axis_address:
+                axis_address['住'] = [x, y]+i[0][2]
+                continue
+            if i[1][0] in ['址'] and '址' not in axis_address:
+                axis_address['址'] = [x, y]+i[0][2]
+                continue
+                
+        if '住' in axis_address and '址' in axis_address:
+            axis = axis_address['住'][:2]+axis_address['址'][-2:]
+            h = axis[3]-axis[1]
+            w = axis[2]-axis[0]
+            if h==0:
+                h = 1
+            if w==0:
+                w = 1
+            x = axis[0]
+            y = axis[1]
+            if jitihu:
+                axis_dict['household_type'].append(([x+w*1.1, y-h*3, x+w*3, y-h*0.5], 0.8))
+                axis_dict['household_name'].append(([x+w*4.75, y-h*3, x+w*8, y-h*0.5], 0.8))
+                axis_dict['household_address'].append(([x+w, y-h*0.5, x+w*8, y+h*1.5], 0.8))
+            else:
+                axis_dict['household_type'].append(([x-w*2, y-h*2.5, x, y-h*0.5], 0.8))
+                axis_dict['household_name'].append(([x+w*1.75, y-h*2.5, x+w*6, y-h*0.5], 0.8))
+                axis_dict['household_id'].append(([x-w*2, y-h*0.5, x-w*0.5, y+h*1.5], 0.8))
+                axis_dict['household_address'].append(([x+w, y-h*0.5, x+w*7, y+h*2.5], 0.8))
+            
+        for i in ['household_type', 'household_name', 'household_id', 'household_address']:
+            if i not in axis_true:
+                if i in axis_dict:
+                    weight = sum([j[1] for j in axis_dict[i]])
+                    axis_true[i] = [sum([j[0][0]*j[1] for j in axis_dict[i]])/weight,
+                                    sum([j[0][1]*j[1] for j in axis_dict[i]])/weight,
+                                    sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
+                                    sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
+        return axis_true
+
+    def _fit_characters_shouye(self, axis):
+        self._axis = axis.copy()
+        axis_true = {i:tuple(axis[i]) for i in axis}
+        fix_x = []
+        address = ''
+        for i in self._result[0]:
+            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
+            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            if h==0:
+                h = 1
+            if w==0:
+                w = 1
+            x = min(i[0][0][0], i[0][3][0])
+            y = min(i[0][0][1], i[0][1][1])
+            if '图片模糊' in self._info['household_type'] and 'household_type' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_type'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_type'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_type'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_type'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    if len(i[1][0][i[1][0].find('别')+len('别'):])>1:
+                        self._info['household_type'] = i[1][0][i[1][0].find('别')+1:]
+                        self._axis['household_type'] = [self._axis['household_type'][0], y]+i[0][2]
+                    elif len(i[1][0])>1 and sum([1 for j in '户别' if j in i[1][0]])==0:
+                        self._info['household_type'] = i[1][0]
+                        self._axis['household_type'] = [x, y]+i[0][2]
+                        fix_x.append(i[0][0][0])
+                if '图片模糊' not in self._info['household_type']:
+                    continue
+            if '图片模糊' in self._info['household_name'] and 'household_name' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_name'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_name'][0])            
+                if sum([1 for char in self._char_household_name if char in i[1][0]])>0:
+                    for char in self._char_household_name:
+                        if char in i[1][0] and len(i[1][0][i[1][0].find(char)+len(char):])>1:
+                            self._info['household_name'] = i[1][0][i[1][0].find(char)+len(char):].strip()
+                            self._axis['household_name'] = [self._axis['household_name'][0], i[0][0][1]]+i[0][2]
+                            break
+                    continue
+                if h1/h>0.6 and w1/w>0.6:
+                    if len(i[1][0][i[1][0].find('名')+len('名'):])>1:
+                        self._info['household_name'] = i[1][0][i[1][0].find('名')+1:]
+                        self._axis['household_name'] = [self._axis['household_name'][0], y]+i[0][2]
+                    elif len(i[1][0])>1:
+                        self._info['household_name'] = i[1][0]
+                        self._axis['household_name'] = [x, y]+i[0][2]
+                if '图片模糊' not in self._info['household_name']:
+                    continue
+            if '图片模糊' in self._info['household_id'] and 'household_id' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_id'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_id'][0])            
+                if h1/h>0.6 and w1/w>0.6 and '家庭' not in i[1][0]:
+                    if len(i[1][0][i[1][0].find('号')+len('号'):])>1:
+                        self._info['household_id'] = i[1][0][i[1][0].find('号')+1:]
+                        self._axis['household_id'] = [self._axis['household_id'][0], y]+i[0][2]
+                    elif len(i[1][0])>1:
+                        self._info['household_id'] = i[1][0]
+                        self._axis['household_id'] = [x, y]+i[0][2]
+                        fix_x.append(i[0][0][0])
+                if '图片模糊' not in self._info['household_id']:
+                    continue
+            if '图片模糊' in self._info['household_address'] and 'household_address' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_address'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_address'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    if len(i[1][0][i[1][0].find('址')+len('址'):])>1 and '址' in i[1][0]:
+                        address += i[1][0][i[1][0].find('址')+1:]
+                        self._axis['household_address'] = [self._axis['household_address'][0], y]+i[0][2]
+                    elif len(i[1][0])>1:
+                        if address=='':
+                            self._axis['household_address'] = [x, y]+i[0][2]
+                        else:
+                            self._axis['household_address'][3] = i[0][2][1]
+                        address += i[1][0]
+#             if '图片模糊' in self._info['household_date']:
+#                 if '年' in i[1][0] and '月' in i[1][0] and i[1][0].endswith('日'):
+#                     self._info['household_date'] = i[1][0][max(0, i[1][0].find('年')-4):]
+#                     continue
+
+        if '图片模糊' in self._info['household_address'] and address!='':
+            self._info['household_address'] = address
+        
+        if self._info['household_id'].endswith('住'):
+            self._info['household_id'] = self._info['household_id'][:-1]
+        if '图片模糊' in self._info['household_id'] and self._aug_image:
+            self._info['household_id'] = ''
+        if '图片模糊' in self._info['household_type'] and self._aug_image:
+            self._info['household_type'] = '非农业家庭户口'
+        else:
+            types = self._info['household_type']
+            if types.endswith('户'):
+                types = types+'口'
+            if types.endswith('集体'):
+                types = types+'户口'
+            if types[1] in ['农','城','家','居']:
+                types = '非'+types[1:]
+            types = types.replace('衣', '农')
+            if not types.endswith('户口'):
+                if '家庭' in types:
+                    types = types[:types.find('家庭')+2]+'户口'
+                elif '农业' in types and types.endswith('体'):
+                    types = types[:types.find('农业')+2]+'集体户口'
+            self._info['household_type'] = types
+        try:
+            if len(fix_x)>0:
+                fix_x = sum(fix_x)/len(fix_x)
+                self._axis['household_type'][0] = fix_x
+                self._axis['household_id'][0] = fix_x
+        except:
+            pass
+        
+        for i in self._axis:
+            self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
     
     def _fit_axis_neirong(self):
         if len(self._result)==0:
@@ -208,6 +520,10 @@ class OCRHuKouBen():
         for i in self._result[0]:
             h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            if h==0:
+                h = 1
+            if w==0:
+                w = 1
             x = min(i[0][0][0], i[0][3][0])
             y = i[0][3][1]+h*0.25
             if '常住人口登记卡' == i[1][0]:
@@ -435,465 +751,5 @@ class OCRHuKouBen():
         self._info = {i:self._info[i] for i in t}
             
     
-    def _fit_axis_shouye(self):
-        if len(self._result)==0:
-            return 0
-        fix_x = []
-        axis_true = defaultdict(list)
-        axis_dict = defaultdict(list)
-
-        for i in self._result[0]:
-            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
-            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
-            x = min(i[0][0][0], i[0][3][0])
-            y = min(i[0][0][1], i[0][1][1])
-            if 'household_type' not in axis_true:
-                for char in self._char_household_type:
-                    if char in i[1][0]:
-                        if len(i[1][0][i[1][0].find(char)+len(char):])>1:
-                            w = w/(len(i[1][0])+2)
-                            axis_true['household_type'] = [x+w*3, y]+i[0][2]
-                        else:
-                            w = w/(len(i[1][0])+1.5)
-                            axis_true['household_type'] = [x+w*3, y, x+w*10, y+h]
-                        axis_dict['household_name'].append(([x+w*14, y, x+w*24, y+h], 0.8))
-                        axis_dict['household_id'].append(([x+w*3, y+h, x+w*8, y+h*3], 0.8))
-                        axis_dict['household_address'].append(([x+w*12, y+h, x+w*24, y+h*4], 0.6))
-                        break
-                if 'household_type' in axis_true:
-                    continue
-            if 'household_name' not in axis_true:
-                for char in self._char_household_name:
-                    if char in i[1][0]:
-                        if len(i[1][0][i[1][0].find(char)+len(char):])>1:
-                            w = w/(len(i[1][0])+2)
-                            axis_true['household_name'] = [x+w*4, y]+i[0][2]
-                        else:
-                            w = w/(len(i[1][0]))
-                            axis_true['household_name'] = [x+w*4, y, x+w*14, y+h*1.5]
-                        axis_dict['household_type'].append(([x-w*8, y, x, y+h*1.5], 0.8))
-                        axis_dict['household_id'].append(([x-w*8, y+h, x-w*2, y+h*3], 0.6))
-                        axis_dict['household_address'].append(([x+w*2, y+h, x+w*16, y+h*4], 0.8))
-                        break
-                if 'household_name' in axis_true:
-                    continue
-            if 'household_id' not in axis_true:
-                for char in self._char_household_id:
-                    if char in i[1][0] and '外部' not in i[1][0]:
-                        if len(i[1][0][i[1][0].find(char)+len(char):])>1:
-                            w = w/(len(i[1][0])+2)
-                            axis_true['household_id'] = [x+w*3, y]+i[0][2]
-                        else:
-                            w = w/(len(i[1][0])+1.5)
-                            axis_true['household_id'] = [x+w*3, y, x+w*9, y+h]
-                        axis_dict['household_type'].append(([x+w*3, y-h*2, x+w*10, y], 0.8))
-                        axis_dict['household_name'].append(([x+w*14, y+h*2, x+w*24, y], 0.6))
-                        axis_dict['household_address'].append(([x+w*12, y, x+w*24, y+h*2], 0.8))
-                        break
-                if 'household_id' in axis_true:
-                    continue
-            if 'household_address' not in axis_true:
-                for char in self._char_household_address:
-                    if char in i[1][0]:
-                        if len(i[1][0][i[1][0].find(char)+len(char):])>1:
-                            w = w/(len(i[1][0])+2)
-                            axis_true['household_address'] = [x+w*3, y, x+w*25, y+h*2]
-                        else:
-                            w = w/(len(i[1][0])+1)
-                            axis_true['household_address'] = [x+w*3, y, x+w*25, y+h*2]
-                        axis_dict['household_type'].append(([x-w*6, y-h*2, x+w, y], 0.6))
-                        axis_dict['household_name'].append(([x+w*5, y-h*2, x+w*14, y], 0.8))
-                        axis_dict['household_id'].append(([x-w*6, y, x-w, y+h], 0.8))
-                        break
-                if 'household_address' in axis_true:
-                    continue
-#         print(axis_true, axis_dict)
-        for i in ['household_type', 'household_name', 'household_id', 'household_address']:
-            if i not in axis_true:
-                if i in axis_dict:
-                    weight = sum([j[1] for j in axis_dict[i]])
-                    axis_true[i] = [sum([j[0][0]*j[1] for j in axis_dict[i]])/weight,
-                                    sum([j[0][1]*j[1] for j in axis_dict[i]])/weight,
-                                    sum([j[0][2]*j[1] for j in axis_dict[i]])/weight,
-                                    sum([j[0][3]*j[1] for j in axis_dict[i]])/weight]
-        return axis_true
-
-    def _fit_characters_shouye(self, axis):
-        self._axis = axis.copy()
-        axis_true = {i:tuple(axis[i]) for i in axis}
-        address = ''
-        for i in self._result[0]:
-            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
-            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
-            if h==0:
-                h = 1
-            if w==0:
-                w = 1
-            x = min(i[0][0][0], i[0][3][0])
-            y = min(i[0][0][1], i[0][1][1])
-            if '图片模糊' in self._info['household_type'] and 'household_type' in axis_true:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_type'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_type'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_type'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_type'][0])            
-                if h1/h>0.6 and w1/w>0.6:
-                    if len(i[1][0][i[1][0].find('别')+len('别'):])>1:
-                        self._info['household_type'] = i[1][0][i[1][0].find('别')+1:]
-                        self._axis['household_type'] = [self._axis['household_type'][0], y]+i[0][2]
-                    elif len(i[1][0])>1 and sum([1 for j in '户别' if j in i[1][0]])==0:
-                        self._info['household_type'] = i[1][0]
-                        self._axis['household_type'] = [x, y]+i[0][2]
-                        fix_x.append(i[0][0][0])
-                if '图片模糊' not in self._info['household_type']:
-                    continue
-            if '图片模糊' in self._info['household_name'] and 'household_name' in axis_true:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_name'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_name'][0])            
-                if h1/h>0.6 and w1/w>0.6:
-                    if len(i[1][0][i[1][0].find('名')+len('名'):])>1:
-                        self._info['household_name'] = i[1][0][i[1][0].find('名')+1:]
-                        self._axis['household_name'] = [self._axis['household_name'][0], y]+i[0][2]
-                    elif len(i[1][0])>1:
-                        self._info['household_name'] = i[1][0]
-                        self._axis['household_name'] = [x, y]+i[0][2]
-                if '图片模糊' not in self._info['household_name']:
-                    continue
-            if '图片模糊' in self._info['household_id'] and 'household_id' in axis_true:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_id'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_id'][0])            
-                if h1/h>0.6 and w1/w>0.6 and '家庭' not in i[1][0]:
-                    if len(i[1][0][i[1][0].find('号')+len('号'):])>1:
-                        self._info['household_id'] = i[1][0][i[1][0].find('号')+1:]
-                        self._axis['household_id'] = [self._axis['household_id'][0], y]+i[0][2]
-                    elif len(i[1][0])>1:
-                        self._info['household_id'] = i[1][0]
-                        self._axis['household_id'] = [x, y]+i[0][2]
-                        fix_x.append(i[0][0][0])
-                if '图片模糊' not in self._info['household_id']:
-                    continue
-            if '图片模糊' in self._info['household_address'] and 'household_address' in axis_true:
-                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['household_address'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['household_address'][1])
-                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['household_address'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['household_address'][0])            
-                if h1/h>0.6 and w1/w>0.6:
-                    if len(i[1][0][i[1][0].find('址')+len('址'):])>1 and '址' in i[1][0]:
-                        address += i[1][0][i[1][0].find('址')+1:]
-                        self._axis['household_address'] = [self._axis['household_address'][0], y]+i[0][2]
-                    elif len(i[1][0])>1:
-                        if address=='':
-                            self._axis['household_address'] = [x, y]+i[0][2]
-                        else:
-                            self._axis['household_address'][3] = i[0][2][1]
-                        address += i[1][0]
-            if '图片模糊' in self._info['household_date']:
-                if '年' in i[1][0] and '月' in i[1][0] and i[1][0].endswith('日'):
-                    self._info['household_date'] = i[1][0][max(0, i[1][0].find('年')-4):]
-                    continue
-
-        if '图片模糊' in self._info['household_address'] and address!='':
-            self._info['household_address'] = address
-        if '图片模糊' in self._info['household_id']:
-            self._info['household_id'] = ''
-        if self._info['household_type'][0]=='非':
-            self._info['household_type'] = '非农业家庭户'
-        try:
-            if len(fix_x)>0:
-                fix_x = sum(fix_x)/len(fix_x)
-                self._axis['household_type'][0] = fix_x
-                self._axis['household_id'][0] = fix_x
-        except:
-            pass
     
-        for i in self._axis:
-            self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
     
-    def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
-        if image is None:
-            image = self._image.copy()
-        angle = self._angle if axis is None else axis['angle']
-        axis = self._axis if axis is None else axis['axis']
-
-        if box_axis=='all':
-            box_axis = self._keys
-        elif isinstance(box_axis, str):
-            if box_axis in self._keys:
-                box_axis = [box_axis]
-            else:
-                raise ValueError(f'`box_axis` must be one of {self._keys}')
-        elif isinstance(box_axis, list):
-            for i in box_axis:
-                if i not in self._keys:
-                    raise ValueError(f'`{i}` not in {self._keys}')
-        else:
-            raise ValueError(f'`box_axis` must be one of {self._keys}')
-
-        if mask_axis is None:
-            mask_axis = []
-        elif mask_axis=='all':
-            mask_axis = self._keys
-        elif isinstance(mask_axis, str):
-            if mask_axis in self._keys:
-                mask_axis = [mask_axis]
-            else:
-                raise ValueError(f'`box_axis` must be one of {self._keys}')
-        elif isinstance(mask_axis, list):
-            for i in mask_axis:
-                if i not in self._keys:
-                    raise ValueError(f'`{i}` not in {self._keys}')
-        else:
-            raise ValueError(f'`box_axis` must be one of {self._keys}')
-
-        try:
-            if angle>0:
-                image = la.image.rotate(image, angle, expand=True)
-            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in box_axis if i not in mask_axis and i in axis]
-            if len(t)>0:
-                image = la.image.draw_box(image, t, width=2)
-            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in mask_axis and i in axis]
-            if len(t)>0:
-                image = la.image.draw_box(image, t, fill_color=(255,255,255), width=2)
-        except:
-            pass
-        return image
-    
-    def env_check(self):
-        env = la.utils.pip.freeze('paddleocr')['paddleocr']
-        if env>='2.6.1.3':
-            return 'Environment check ok.'
-        else:
-            return f"Now environment dependent paddleocr>='2.6.1.3', local env paddleocr='{env}'"
-
-    def metrics(self, data, image_root, name_list=None, debug=False):
-        if la.gfile.isfile(data):
-            with open(data) as f:
-                data = f.read().replace('\n', '').replace('}', '}\n').strip().split('\n')
-            data = [eval(i) for i in data]
-        if name_list is None:
-            name_list = ['household_type', 'household_name', 'household_id', 'household_address', 'household_date',
-                         'register_name', 'register_previous_name', 'register_relation', 'register_sex', 
-                         'register_born', 'register_number', 'register_education', 'register_service_office', 
-                         'register_marriage', 'register_military', 'register_career','register_city', 
-                         'register_address', 'register_date', 'register_content']
-
-        score_a = {i:0 for i in name_list}
-        score_b = {i:0.0000001 for i in name_list}
-        error_list = []
-        for i in data:
-            error = {'image':i.pop('image')}
-            try:
-                t = self.predict(la.gfile.path_join(image_root, error['image']))['data']
-                if isinstance(t, dict):
-                    for j in name_list:
-                        if j in i:
-                            if j in t:
-                                if t[j]==i[j]:
-                                    score_a[j] +=1
-                                else:
-                                    error[j] = {'pred':t[j], 'label':i[j]}
-                            score_b[j] += 1
-            except:
-                for j in name_list:
-                    if j in i:
-                        score_b[j] += 1
-                error['error'] = 'program error'
-            if len(error)>1:
-                error_list.append(error)
-        
-        score = {f'{i}_acc':score_a[i]/max(score_b[i], 0.0000001) for i in score_a}
-        score['totalmean_acc'] = sum([score_a[i] for i in score_a])/max(sum([score_b[i] for i in score_b]), 0.0000001)
-        score = {i:round(score[i], 4) for i in score}
-        score['test_sample_nums'] = len(data)
-        if debug:
-            score['error'] = error_list
-        return score
-    
-    def metrics1(self, image_list, label_list=None, debug=False):
-        types = 0
-        names = 0
-        ids = 0
-        addresss = 0
-        dates = 0
-
-        household_type = 0.0000001
-        household_name = 0.0000001
-        household_id = 0.0000001
-        household_address = 0.0000001
-        household_date = 0.0000001
-    
-        name = 0
-        previous_name = 0
-        relation = 0
-        sex = 0
-        born = 0
-        number = 0
-        education = 0
-        service_office = 0
-        marriage = 0
-        military = 0
-        career = 0
-        city = 0
-        address = 0
-        date = 0
-        content = 0
-        
-        register_name = 0.0000001
-        register_previous_name = 0.0000001
-        register_relation = 0.0000001
-        register_sex = 0.0000001
-        register_born = 0.0000001
-        register_number = 0.0000001
-        register_education = 0.0000001
-        register_service_office = 0.0000001
-        register_marriage = 0.0000001
-        register_military = 0.0000001
-        register_career = 0.0000001
-        register_city = 0.0000001
-        register_address = 0.0000001
-        register_date = 0.0000001
-        register_content = 0.0000001
-
-        error_list = []
-        for r, i in enumerate(image_list):
-            error = {'image':i}
-            if label_list is None:
-                label = i.split('$$')[1:-1]
-            else:
-                label = label_list[r].split('$$')[1:-1]
-            t = self.predict(i)['data']
-            try:
-                if isinstance(t, dict):
-                    if len(label)==5:
-                        if t['household_type']==label[0]:
-                            types += 1
-                        else:
-                            error['household_type'] = {'pred':t['household_type'], 'label':label[0]}
-                        if t['household_name']==label[1]:
-                            names += 1
-                        else:
-                            error['household_name'] = {'pred':t['household_name'], 'label':label[1]}
-                        if t['household_id']==label[2]:
-                            ids += 1
-                        else:
-                            error['household_id'] = {'pred':t['household_id'], 'label':label[2]}
-                        if t['household_address']==label[3]:
-                            addresss += 1
-                        else:
-                            error['household_address'] = {'pred':t['household_address'], 'label':label[3]}
-                        if t['household_date']==label[4]:
-                            dates += 1
-                        else:
-                            error['household_date'] = {'pred':t['household_date'], 'label':label[4]}
-                    elif len(label)==15:
-                        if t['register_name']==label[0]:
-                            name += 1
-                        else:
-                            error['register_name'] = {'pred':t['register_name'], 'label':label[0]}
-                        if t['register_previous_name']==label[1]:
-                            previous_name += 1
-                        else:
-                            error['register_previous_name'] = {'pred':t['register_previous_name'], 'label':label[1]}
-                        if t['register_relation']==label[2]:
-                            relation += 1
-                        else:
-                            error['register_relation'] = {'pred':t['register_relation'], 'label':label[2]}
-                        if t['register_sex']==label[3]:
-                            sex += 1
-                        else:
-                            error['register_sex'] = {'pred':t['register_sex'], 'label':label[3]}
-                        if t['register_born']==label[4]:
-                            born += 1
-                        else:
-                            error['register_born'] = {'pred':t['register_born'], 'label':label[4]}
-                        if t['register_number']==label[5]:
-                            number += 1
-                        else:
-                            error['register_number'] = {'pred':t['register_number'], 'label':label[5]}
-                        if t['register_education']==label[6]:
-                            education += 1
-                        else:
-                            error['register_education'] = {'pred':t['register_education'], 'label':label[6]}
-                        if t['register_service_office']==label[7]:
-                            service_office += 1
-                        else:
-                            error['register_service_office'] = {'pred':t['register_service_office'], 'label':label[7]}
-                        if t['register_marriage']==label[8]:
-                            marriage += 1
-                        else:
-                            error['register_marriage'] = {'pred':t['register_marriage'], 'label':label[8]}
-                        if t['register_military']==label[9]:
-                            military += 1
-                        else:
-                            error['register_military'] = {'pred':t['register_military'], 'label':label[9]}
-                        if t['register_career']==label[10]:
-                            career += 1
-                        else:
-                            error['register_career'] = {'pred':t['register_career'], 'label':label[10]}
-                        if t['register_city']==label[11]:
-                            city += 1
-                        else:
-                            error['register_city'] = {'pred':t['register_city'], 'label':label[11]}
-                        if t['register_address']==label[12]:
-                            address += 1
-                        else:
-                            error['register_address'] = {'pred':t['register_address'], 'label':label[12]}
-                        if t['register_date']==label[13]:
-                            date += 1
-                        else:
-                            error['register_date'] = {'pred':t['register_date'], 'label':label[13]}
-                        if t['register_content']==label[14]:
-                            content += 1
-                        else:
-                            error['register_content'] = {'pred':t['register_content'], 'label':label[14]}
-            except:
-                pass
-            if len(label)==5:
-                household_type += 1
-                household_name += 1
-                household_id += 1
-                household_address += 1
-                household_date += 1
-            elif len(label)==15:
-                register_name += 1
-                register_previous_name += 1
-                register_relation += 1
-                register_sex += 1
-                register_born += 1
-                register_number += 1
-                register_education += 1
-                register_service_office += 1
-                register_marriage += 1
-                register_military += 1
-                register_career += 1
-                register_city += 1
-                register_address += 1
-                register_date += 1
-                register_content += 1
-            if len(error)>1:
-                error_list.append(error)
-
-        ok = (name+previous_name+relation+sex+born+number+education+service_office
-              +marriage+military+career++city+address+date+content
-              +types+names+ids+addresss+dates)
-        total = (register_name+register_previous_name+register_relation+register_sex
-                 +register_born+register_number+register_education+register_service_office
-                 +register_marriage+register_military+register_career+register_city
-                 +register_address+register_date+register_content
-                 +household_type+household_name+household_id+household_address+household_date)
-        result = {'household_type_acc':types/household_type, 'household_name_acc':names/household_name, 
-                  'household_id_acc':ids/household_id,
-                  'household_address_acc':addresss/household_address, 'household_date_acc':dates/household_date, 
-                  'register_name_acc':name/register_name, 'register_previous_name_acc':previous_name/register_previous_name,
-                  'register_relation_acc':relation/register_relation, 'register_sex_acc':sex/register_sex,
-                  'register_born_acc':born/register_born, 'register_number_acc':number/register_number,
-                  'register_education_acc':education/register_education, 
-                  'register_service_office_acc':service_office/register_service_office,
-                  'register_marriage_acc':marriage/register_marriage, 'register_military_acc':military/register_military,
-                  'register_career_acc':career/register_career, 'register_city_acc':city/register_city, 
-                  'register_address_acc':address/register_address, 'register_date_acc':date/register_date,
-                  'register_content_acc':content/register_content, 'totalmean_acc':ok/total,
-                  'test_sample_nums':len(image_list)
-                 }
-        result = {i:round(result[i], 4) for i in result}
-        if debug:
-            result['error'] = error_list
-        return result
-
-
-
