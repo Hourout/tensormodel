@@ -856,50 +856,12 @@ class OCRHuKouBen():
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
     
-    def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
-        angle = self._angle if axis is None else axis['angle']
-        axis = self._axis if axis is None else axis['axis']
-        if image is None:
-            image = self._image.copy()
-        else:
-            image = la.image.rotate(image, angle, expand=True)
-        if box_axis=='all':
-            box_axis = self._keys
-        elif isinstance(box_axis, str):
-            if box_axis in self._keys:
-                box_axis = [box_axis]
-            else:
-                raise ValueError(f'`box_axis` must be one of {self._keys}')
-        elif isinstance(box_axis, list):
-            for i in box_axis:
-                if i not in self._keys:
-                    raise ValueError(f'`{i}` not in {self._keys}')
-        else:
-            raise ValueError(f'`box_axis` must be one of {self._keys}')
-
-        if mask_axis is None:
-            mask_axis = []
-        elif mask_axis=='all':
-            mask_axis = self._keys
-        elif isinstance(mask_axis, str):
-            if mask_axis in self._keys:
-                mask_axis = [mask_axis]
-            else:
-                raise ValueError(f'`box_axis` must be one of {self._keys}')
-        elif isinstance(mask_axis, list):
-            for i in mask_axis:
-                if i not in self._keys:
-                    raise ValueError(f'`{i}` not in {self._keys}')
-        else:
-            raise ValueError(f'`box_axis` must be one of {self._keys}')
-
+    def draw_mask(self):
+        image = self._image.copy()
         try:
-            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in box_axis if i not in mask_axis and i in axis]
+            t = [la.image.box_convert(self._axis[i], 'xyxy', 'axis') for i in self._axis if i in self._keys]
             if len(t)>0:
                 image = la.image.draw_box(image, t, width=2)
-            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in mask_axis and i in axis]
-            if len(t)>0:
-                image = la.image.draw_box(image, t, fill_color=(255,255,255), width=2)
         except:
             pass
         return image
