@@ -696,7 +696,7 @@ class OCRWanShuiPiao():
             if len(error)>1:
                 error_list.append(error)
 
-        score = {f'{i}_acc':score_a[i]/max(score_b[i], 0.0000001) for i in score_a}
+        score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a if score_b[i]>0}
         score['totalmean_acc'] = sum([score_a[i] for i in score_a])/max(sum([score_b[i] for i in score_b]), 0.0000001)
         score = {i:round(score[i], 4) for i in score}
         score['test_sample_nums'] = nums

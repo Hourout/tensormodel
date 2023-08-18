@@ -120,7 +120,7 @@ class OCRHuKouBen():
                     rank[4] = r
                 elif '籍贯' in i[1][0] or '出生日期' in i[1][0]:
                     rank[5] = r
-                elif '住址' in i[1][0] or '宗教信仰' in i[1][0]:
+                elif '宗教信仰' in i[1][0]:
                     rank[6] = r
                 elif '身高' in i[1][0] or '血型' in i[1][0]:
                     rank[7] = r
@@ -831,10 +831,11 @@ class OCRHuKouBen():
                         self._axis['register_address'] = [x, y]+i[0][2]
                         continue
 
+            if '图片模糊' in self._info.get('register_name', ''):
+                if len(register_name)==la.text.sequence_preprocess(register_name) and len(register_name)>1:
+                    self._info['register_name'] = register_name
             self._info['register_city'] = register_city
             self._info['register_address'] = register_address if '登记日期' not in register_address else ''
-            if '图片模糊' in self._info['register_name']:
-                self._info['register_name'] = register_name
             if '图片模糊' in self._info['register_nation']:
                 self._info['register_nation'] = '汉'
             if '图片模糊' in self._info['register_relation']:
@@ -951,7 +952,7 @@ class OCRHuKouBen():
             if len(error)>1:
                 error_list.append(error)
 
-        score = {f'{i}_acc':score_a[i]/max(score_b[i], 0.0000001) for i in score_a}
+        score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a if score_b[i]>0}
         score['totalmean_acc'] = sum([score_a[i] for i in score_a])/max(sum([score_b[i] for i in score_b]), 0.0000001)
         score = {i:round(score[i], 4) for i in score}
         score['test_sample_nums'] = nums
@@ -962,4 +963,5 @@ class OCRHuKouBen():
             score['error'] = error_list
             score['time'] = time_list
         return score
+
 
