@@ -158,13 +158,13 @@ class OCRJieHunZheng():
                         w = w*2/(len(i[1][0])+1)
                     axis_true['user_name_up'] = [x+w, y-h*2, x+w*4.5, y+h*2]
                     axis_dict['user_country_up'].append(([None, y+h, None, y+h*4], 0.8))
-                    axis_dict['user_number_up'].append(([None, y+h*3, None, y+h*7], 0.6))
+                    axis_dict['user_number_up'].append(([None, y+h*2, None, y+h*7], 0.6))
                     axis_dict['user_name_down'].append(([None, y+h*6, None, y+h*10], 0.4))
                     axis_dict['user_country_up'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_up'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_up'].append(([x+w, None, x+w*9, None], 100))
                     axis_dict['user_name_down'].append(([x+w, None, x+w*4.5, None], 100))
                     axis_dict['user_country_down'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_down'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_down'].append(([x+w, None, x+w*9, None], 100))
                     continue
             if 'user_country_up' not in axis_true and i[0][0][1]<self._axis_up_down:
                 temp = [char for char in self._char_user_country if char in i[1][0]]
@@ -173,13 +173,13 @@ class OCRJieHunZheng():
                         w = w*2/(len(i[1][0])+1)
                     axis_true['user_country_up'] = [x+w, y-h, x+w*4.5, y+h*2]
                     axis_dict['user_name_up'].append(([None, y-h*4, None, y], 0.8))
-                    axis_dict['user_number_up'].append(([None, y+h, None, y+h*5], 0.8))
+                    axis_dict['user_number_up'].append(([None, y, None, y+h*5], 0.8))
                     axis_dict['user_name_down'].append(([None, y+h*4, None, y+h*8], 0.4))
                     axis_dict['user_name_up'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_up'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_up'].append(([x+w, None, x+w*9, None], 100))
                     axis_dict['user_name_down'].append(([x+w, None, x+w*4.5, None], 100))
                     axis_dict['user_country_down'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_down'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_down'].append(([x+w, None, x+w*9, None], 100))
                     continue
             if 'user_number_up' not in axis_true and i[0][0][1]<self._axis_up_down:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
@@ -200,7 +200,7 @@ class OCRJieHunZheng():
                 if temp:
                     if len(i[1][0][i[1][0].find(temp[0])+len(temp[0]):])>1:
                         w = w*0.3
-                    axis_true['user_number_up'] = [x+w, y-h, x+w*4, y+h*2]
+                    axis_true['user_number_up'] = [x+w, y-h*2, x+w*4, y+h*2]
                     axis_dict['user_name_up'].append(([None, y-h*5, None, y-h*2], 0.6))
                     axis_dict['user_country_up'].append(([None, y-h*3, None, y], 0.8))
                     axis_dict['user_name_down'].append(([None, y+h*2, None, y+h*5], 0.4))
@@ -218,7 +218,7 @@ class OCRJieHunZheng():
                     axis_true['user_name_down'] = [x+w, y-h*1.5, x+w*4.5, y+h*2]
                     axis_dict['user_number_up'].append(([None, y-h*5, None, y-h], 0.8))
                     axis_dict['user_country_down'].append(([None, y+h, None, y+h*4], 0.8))
-                    axis_dict['user_number_down'].append(([None, y+h*3, None, y+h*7], 0.4))
+                    axis_dict['user_number_down'].append(([None, y+h*2, None, y+h*7], 0.4))
                     axis_dict['user_name_up'].append(([x+w, None, x+w*4.5, None], 100))
                     axis_dict['user_country_up'].append(([x+w, None, x+w*4.5, None], 100))
                     axis_dict['user_number_up'].append(([x+w*2, None, x+w*9, None], 100))
@@ -233,12 +233,12 @@ class OCRJieHunZheng():
                     axis_true['user_country_down'] = [x+w, y-h, x+w*4.5, y+h*2]
                     axis_dict['user_number_up'].append(([None, y-h*7, None, y-h*3], 0.4))
                     axis_dict['user_name_down'].append(([None, y-h*3, None, y], 0.8))
-                    axis_dict['user_number_down'].append(([None, y+h, None, y+h*5], 0.8))
+                    axis_dict['user_number_down'].append(([None, y, None, y+h*5], 0.8))
                     axis_dict['user_name_up'].append(([x+w, None, x+w*4.5, None], 100))
                     axis_dict['user_country_up'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_up'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_up'].append(([x+w, None, x+w*9, None], 100))
                     axis_dict['user_name_down'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_down'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_down'].append(([x+w, None, x+w*9, None], 100))
                     continue
             if 'user_number_down' not in axis_true and i[0][0][1]>self._axis_up_down:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
@@ -259,7 +259,7 @@ class OCRJieHunZheng():
                 if temp:
                     if len(i[1][0][i[1][0].find(temp[0])+len(temp[0]):])>1:
                         w = w*0.3
-                    axis_true['user_number_down'] = [x+w, y-h, x+w*4, y+h*2]
+                    axis_true['user_number_down'] = [x+w, y-h*2, x+w*4, y+h*2]
                     axis_dict['user_number_up'].append(([None, y-h*8, None, y-h*5], 0.4))
                     axis_dict['user_name_down'].append(([None, y-h*5, None, y-h*2], 0.6))
                     axis_dict['user_country_down'].append(([None, y-h*3, None, y], 0.8))
@@ -382,7 +382,7 @@ class OCRJieHunZheng():
                             self._info['user_country_up'] = '中国' if '中国' in temp else temp
                             self._axis['user_country_up'] = [self._axis['user_country_up'][0], y]+i[0][2]
                             continue
-            if '图片模糊' in self._info.get('user_number_up', '') and i[0][0][1]<self._axis_up_down+h*2:
+            if '图片模糊' in self._info.get('user_number_up', '') and self._axis_up_down-h*5<i[0][0][1]<self._axis_up_down+h*2:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
                     self._info['user_number_up'] = i[1][0][-18:]
                     self._info['user_sex_up'] =  '男' if int(i[1][0][-18:][16])%2 else '女'
@@ -397,6 +397,17 @@ class OCRJieHunZheng():
                         self._info['user_number_up'] = temp
                         self._info['user_sex_up'] =  '男' if int(temp[16])%2 else '女'
                         self._info['user_born_up'] = f"{temp[6:10]}年{temp[10:12]}月{temp[12:14]}日"
+                elif sum([1 for j in i[1][0] if j in '0123456789'])==15:
+                    temp = ''.join([j for j in i[1][0] if j in '0123456789'])
+                    if temp[0]!=0:
+                        self._info['user_number_up'] = temp
+                elif sum([1 for j in i[1][0] if j in '0123456789'])<10:
+                    temp = i[1][0].strip()
+                    for char in self._char_user_number:
+                        if char in temp:
+                            temp = temp[temp.find(char)+len(char):]
+                    if sum([1 for j in temp if j in '字第号'])==3 and temp.endswith('号') and '结' not in temp:
+                        self._info['user_number_up'] = temp
                 if '图片模糊' not in self._info['user_number_up']:
                     continue
             if '图片模糊' in self._info.get('user_name_down', '') and 'user_name_down' in axis_true:
@@ -424,7 +435,6 @@ class OCRJieHunZheng():
                         if (not (len(temp) in [2,3] and temp[0] in self._char_name)) or '中国' in temp:
                             self._info['user_country_down'] = '中国' if '中国' in temp else temp
                             self._axis['user_country_down'] = [self._axis['user_country_down'][0], y]+i[0][2]
-#                             step = False
                             continue
             if '图片模糊' in self._info.get('user_number_down', '') and i[0][0][1]>self._axis_up_down:
                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
@@ -441,6 +451,17 @@ class OCRJieHunZheng():
                         self._info['user_number_down'] = temp
                         self._info['user_sex_down'] =  '男' if int(temp[16])%2 else '女'
                         self._info['user_born_down'] = f"{temp[6:10]}年{temp[10:12]}月{temp[12:14]}日"
+                elif sum([1 for j in i[1][0] if j in '0123456789'])==15:
+                    temp = ''.join([j for j in i[1][0] if j in '0123456789xX'])
+                    if temp[0]!=0:
+                        self._info['user_number_down'] = temp
+                elif sum([1 for j in i[1][0] if j in '0123456789'])<10:
+                    temp = i[1][0].strip()
+                    for char in self._char_user_number:
+                        if char in temp:
+                            temp = temp[temp.find(char)+len(char):]
+                    if sum([1 for j in temp if j in '字第号'])==3 and temp.endswith('号') and '结' not in temp:
+                        self._info['user_number_down'] = temp
 
         if '图片模糊' in self._info.get('marriage_id', '') and marriage_id:
             self._info['marriage_id'] = marriage_id
@@ -461,15 +482,11 @@ class OCRJieHunZheng():
         if '图片模糊' in self._info.get('user_born_down', '') or '图片模糊' in self._info.get('user_born_up', ''):
             date = []
             for i in self._result[0]:
+                h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
                 temp = self._analysis_date(i[1][0])
-                if temp.find('年')==4 and '月' in temp:
+                if temp.find('年')==4 and '月' in temp and i[0][0][1]>self._axis_up_down-h*5:
                     date.append(temp)
             date = [i for i in date if i!=self._info.get('marriage_date', '')]
-                
-#             date = [i[1][0][-11:] for i in self._result[0] if i[1][0][-11:].find('年')==4 and '月' in i[1][0] and i[1][0].endswith('日')][-2:]
-#             if date:
-#                 if date[0]== self._info.get('marriage_date', ''):
-#                     date = date[1:]
             if len(date)==1:
                 if '图片模糊' in self._info.get('user_born_down', '') and '图片模糊' in self._info.get('user_born_up', ''):
                     self._info['user_born_up'] = date[0]
