@@ -67,7 +67,7 @@ class OCRLvMaHeYan():
         for angle in [0, 90, 270, 180]:
             image = la.image.rotate(self._image, angle, expand=True)
             self._result = model.ocr(la.image.image_to_array(image), cls=False)
-            rank = [0,0,0,0,0,0,0]
+            rank = [0,0,0,0,0,0]
             for r, i in enumerate(self._result[0], start=1):
                 if '核验编号' in i[1][0]:
                     if rank[0]==0:
@@ -87,9 +87,6 @@ class OCRLvMaHeYan():
                 elif '家庭描述' in i[1][0]:
                     if rank[5]==0:
                         rank[5] = r
-                elif '拟购房区' in i[1][0]:
-                    if rank[6]==0:
-                        rank[6] = r
             rank = [i for i in rank if i>0]
             if rank==sorted(rank) and len(rank)>1:
                 self._image = image
@@ -117,12 +114,9 @@ class OCRLvMaHeYan():
             if 'check_purpose' not in axis_true and i[1][0] in ['核验用途', '核验用途：']:
                 axis_true['check_purpose'] = [x+w*1.2, y-h*0.25, x+w*5, y+h*1.25]
                 continue
-#             if 'check_status' not in axis_true:
-#                 axis_true['check_status'] = [x+w*1.2, y-h*0.25, x+w*4, y+h*1.25]
-#                 continue
-#             if 'check_serial_number' not in axis_true:
-#                 axis_true['check_serial_number'] = [x+w*1.2, y-h*0.25, x+w*4, y+h*1.25]
-#                 continue
+            if 'check_serial_number' not in axis_true and i[1][0] in ['连环单号', '连环单号：']:
+                axis_true['check_serial_number'] = [x+w*1.2, y-h*0.25, x+w*4, y+h*1.25]
+                continue
 
         for i in self._keys:
             if i not in axis_true:
@@ -177,60 +171,30 @@ class OCRLvMaHeYan():
                     self._info['check_purpose'] = i[1][0]
                     self._axis['check_purpose'] = [x, y]+i[0][2]
                     continue
-            if '图片模糊' in self._info.get('check_purpose', '') and '核验' in i[1][0]:
-                if i[1][0] in ['核验通过', '初步核验通过']:
-                    self._info['check_status'] = i[1][0]
-                    self._axis['check_status'] = [x, y]+i[0][2]
+            if '图片模糊' in self._info.get('check_serial_number', '') and 'check_serial_number' in axis_true:
+                h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['check_serial_number'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['check_serial_number'][1])
+                w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['check_serial_number'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['check_serial_number'][0])            
+                if h1/h>0.6 and w1/w>0.6:
+                    self._info['check_serial_number'] = i[1][0]
+                    self._axis['check_serial_number'] = [x, y]+i[0][2]
                     continue
+            if '图片模糊' in self._info.get('check_purpose', '') and '核验' in i[1][0]:
+                for char in ['初步核验通过', '核验通过']:
+                    if char in i[1][0]:
+                        self._info['check_status'] = char
+                        self._axis['check_status'] = [x, y]+i[0][2]
+                        break
             
     
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
     
-    def draw_mask(self, image=None, axis=None, box_axis='all', mask_axis=None):
-        angle = self._angle if axis is None else axis['angle']
-        axis = self._axis if axis is None else axis['axis']
-        if image is None:
-            image = self._image.copy()
-        else:
-            image = la.image.rotate(image, angle, expand=True)
-        if box_axis=='all':
-            box_axis = self._keys
-        elif isinstance(box_axis, str):
-            if box_axis in self._keys:
-                box_axis = [box_axis]
-            else:
-                raise ValueError(f'`box_axis` must be one of {self._keys}')
-        elif isinstance(box_axis, list):
-            for i in box_axis:
-                if i not in self._keys:
-                    raise ValueError(f'`{i}` not in {self._keys}')
-        else:
-            raise ValueError(f'`box_axis` must be one of {self._keys}')
-
-        if mask_axis is None:
-            mask_axis = []
-        elif mask_axis=='all':
-            mask_axis = self._keys
-        elif isinstance(mask_axis, str):
-            if mask_axis in self._keys:
-                mask_axis = [mask_axis]
-            else:
-                raise ValueError(f'`box_axis` must be one of {self._keys}')
-        elif isinstance(mask_axis, list):
-            for i in mask_axis:
-                if i not in self._keys:
-                    raise ValueError(f'`{i}` not in {self._keys}')
-        else:
-            raise ValueError(f'`box_axis` must be one of {self._keys}')
-
+    def draw_mask(self):
+        image = self._image.copy()
         try:
-            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in box_axis if i not in mask_axis and i in axis]
+            t = [la.image.box_convert(self._axis[i], 'xyxy', 'axis') for i in self._axis if i in self._keys]
             if len(t)>0:
                 image = la.image.draw_box(image, t, width=2)
-            t = [la.image.box_convert(axis[i], 'xyxy', 'axis') for i in mask_axis and i in axis]
-            if len(t)>0:
-                image = la.image.draw_box(image, t, fill_color=(255,255,255), width=2)
         except:
             pass
         return image

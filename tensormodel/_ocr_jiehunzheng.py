@@ -120,8 +120,8 @@ class OCRJieHunZheng():
         self._axis_up_down = sum(axis_up_down)/len(axis_up_down) if axis_up_down else 0
         
         for i in self._result[0]:
-            h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
-            w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+            h = max((i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2, 1)
+            w = max((i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2, 1)
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
             if 'marriage_name' not in axis_true:
@@ -290,8 +290,6 @@ class OCRJieHunZheng():
 
         axis_true = {i:tuple(axis[i]) for i in axis}
         fix_x = []
-#         step = True
-#         step_name = True
         marriage_id = ''
         for i in result[0]:
             if sum([1 for char in i[1][0] if char in '仅用于使'])>2:
@@ -367,7 +365,6 @@ class OCRJieHunZheng():
                             else:
                                 self._info['user_name_up'] = self._info['marriage_name']
                         self._axis['user_name_up'] = [self._axis['user_name_up'][0], y]+i[0][2]
-#                         step_name = False
                         continue
             if '图片模糊' in self._info.get('user_country_up', '') and 'user_country_up' in axis_true and i[0][0][1]<self._axis_up_down:
                 temp = la.text.sequence_preprocess(i[1][0]).replace('中华人民共和国', '中国').replace('国国', '中国')
@@ -421,7 +418,6 @@ class OCRJieHunZheng():
                     if h1/h>0.6 and w1/w>0.4 and len(temp)>1:
                         self._info['user_name_down'] = temp
                         self._axis['user_name_down'] = [self._axis['user_name_down'][0], y]+i[0][2]
-#                         step = False
                         continue
             if '图片模糊' in self._info.get('user_country_down', '') and 'user_country_down' in axis_true and i[0][0][1]>self._axis_up_down:
                 temp = la.text.sequence_preprocess(i[1][0]).replace('中华人民共和国', '中国').replace('国国', '中国')
@@ -504,38 +500,38 @@ class OCRJieHunZheng():
                 elif '图片模糊' not in self._info.get('user_born_down', '') or '图片模糊' in self._info.get('user_born_up', ''):
                     self._info['user_born_up'] = date[0]
         
-        if self._show_axis:
-            try:
-                if len(fix_x)>0:
-                    fix_x = sum(fix_x)/len(fix_x)
-                    self._axis['marriage_name'][0] = fix_x
-                    self._axis['marriage_date'][0] = fix_x
-                    self._axis['marriage_id'][0] = fix_x
+#         if self._show_axis:
+#             try:
+#                 if len(fix_x)>0:
+#                     fix_x = sum(fix_x)/len(fix_x)
+#                     self._axis['marriage_name'][0] = fix_x
+#                     self._axis['marriage_date'][0] = fix_x
+#                     self._axis['marriage_id'][0] = fix_x
 
-                for i in self._result[0]:
-                    h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
-                    w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
-                    x = min(i[0][0][0], i[0][3][0])
-                    y = min(i[0][0][1], i[0][1][1])
-                    if self._info['user_sex_up'] in i[1][0]:
-                        h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_sex_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_sex_up'][1])
-                        w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_sex_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_sex_up'][0])            
-                        if h1/h>0.2 and w1/w>0.2:
-                            self._axis['user_sex_up'] = [self._axis['user_sex_up'][0], y]+i[0][2]
-                            continue
-                    if self._info['user_born_up'] in i[1][0]:
-                        self._axis['user_born_up'] = [self._axis['user_born_up'][0], y]+i[0][2]
-                        continue
-                    if self._info['user_sex_down'] in i[1][0]:
-                        h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_sex_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_sex_down'][1])
-                        w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_sex_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_sex_down'][0])            
-                        if h1/h>0.2 and w1/w>0.2:
-                            self._axis['user_sex_down'] = [self._axis['user_sex_down'][0], y]+i[0][2]
-                            continue
-                    if self._info['user_born_down'] in i[1][0]:
-                        self._axis['user_born_down'] = [self._axis['user_born_down'][0], y]+i[0][2]
-            except:
-                pass
+#                 for i in result[0]:
+#                     h = (i[0][3][1]+i[0][2][1]-i[0][1][1]-i[0][0][1])/2
+#                     w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
+#                     x = min(i[0][0][0], i[0][3][0])
+#                     y = min(i[0][0][1], i[0][1][1])
+#                     if self._info['user_sex_up'] in i[1][0]:
+#                         h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_sex_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_sex_up'][1])
+#                         w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_sex_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_sex_up'][0])            
+#                         if h1/h>0.2 and w1/w>0.2:
+#                             self._axis['user_sex_up'] = [self._axis['user_sex_up'][0], y]+i[0][2]
+#                             continue
+#                     if self._info['user_born_up'] in i[1][0]:
+#                         self._axis['user_born_up'] = [self._axis['user_born_up'][0], y]+i[0][2]
+#                         continue
+#                     if self._info['user_sex_down'] in i[1][0]:
+#                         h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_sex_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_sex_down'][1])
+#                         w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_sex_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_sex_down'][0])            
+#                         if h1/h>0.2 and w1/w>0.2:
+#                             self._axis['user_sex_down'] = [self._axis['user_sex_down'][0], y]+i[0][2]
+#                             continue
+#                     if self._info['user_born_down'] in i[1][0]:
+#                         self._axis['user_born_down'] = [self._axis['user_born_down'][0], y]+i[0][2]
+#             except:
+#                 pass
     
         for i in self._axis:
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
