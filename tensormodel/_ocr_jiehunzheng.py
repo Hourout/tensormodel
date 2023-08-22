@@ -27,7 +27,7 @@ class OCRJieHunZheng():
         self._char_marriage_name = ['持证', '证人']
         self._char_marriage_date = ['登记日', '记日']
         self._char_marriage_id = ['结婚证字', '离婚证字', '洁婚证字']
-        self._char_user_name = ['姓名', '姓多']
+        self._char_user_name = ['姓名', '姓多', '姓爸', '姓吉']
         self._char_user_country = ['国籍', '国箱', '国馨', '国精']
         self._char_user_sex = ['性别']
         self._char_user_born = ['出生日期']
@@ -573,7 +573,13 @@ class OCRJieHunZheng():
             pass
         return image
     
-    def env_check(self):
+    def check_label_duplicate(self):
+        count = la.text.word_count([[i['user_number_up']] for i in data])
+        count = [i for i in count if count[i]>1]
+        count = [[j['image'] for j in data if j['user_number_up']==i] for i in count]
+        return count
+    
+    def check_env(self):
         env = la.utils.pip.freeze('paddleocr')['paddleocr']
         if env>='2.6.1.3':
             return 'Environment check ok.'

@@ -866,7 +866,7 @@ class OCRHuKouBen():
             pass
         return image
     
-    def env_check(self):
+    def check_env(self):
         env = la.utils.pip.freeze('paddleocr')['paddleocr']
         if env>='2.6.1.3':
             return 'Environment check ok.'
