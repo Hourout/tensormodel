@@ -199,7 +199,7 @@ class OCRLvMaHeYan():
             pass
         return image
     
-    def check_env(self):
+    def env_check(self):
         env = la.utils.pip.freeze('paddleocr')['paddleocr']
         if env>='2.6.1.3':
             return 'Environment check ok.'
