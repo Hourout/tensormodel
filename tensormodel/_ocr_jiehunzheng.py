@@ -32,7 +32,6 @@ class OCRJieHunZheng():
         self._char_user_sex = ['性别']
         self._char_user_born = ['出生日期']
         self._char_user_number = ['身份证件号', '身份证件导']
-        self._char_name = '阎段冼凌辜石顾齐祝乐虞伏夏穆练赖宇姓苗甄于盖许彭晏敖谌汤梅娄潘李华花陈阮苟池陆韦鲍卜宗管沙覃糜傅周龙耿徐项蓝孟游廉楚扬樊奚竺龚毕章阳党全郁萧张成连漕舒柏卞时巫庄叶文冯霍臧喻揭应蔺唐芦谷席郎桂常单薛丛吴黎佟黄保施闵官盛商侯季宋瞿胡范牛畅蒋秦宫纪苏颜伍巩滕万江杨詹严程童燕百韩任辛关仇计司卓谈谢聂岳桑迟封吕梁袁祁卢冷匡毛温左罗白柳马孙薄家习安涂古邬康仲隋殷沿僧庞尤木牟排贾郭边金孔谭朱葛姜郑位费宁高赵贺陶崔向熊翁栗明银褚柯卫姚强莫戚汪鞠来乔魏符史丁钱廖曲稽吉栾冉井洪都蔡和兰翟欧何刘甘姬易屠胥靳屈嵺查鲁车蒙田戴窦冀景包焦衣沈申曾邱尹邢名裴董丘王邸岑郝解刁饶米柴路台艾原邓俞邹苑余倪方晋郜鄢植荆林杜钟邵武曹房简'
         
     def predict(self, image, axis=False, model=None):
         self._axis_up_down = 0
@@ -86,9 +85,13 @@ class OCRJieHunZheng():
         for angle in [0, 90, 270, 180]:
             image = la.image.rotate(self._image, angle, expand=True)
             self._result = model.ocr(la.image.image_to_array(image), cls=False)
+            logic = 0
+            logic_r = 0
+            number_n = 0
+            number_r = 0
             rank = [0,0,0,0,0]
             for r, i in enumerate(self._result[0], start=1):
-                if '持证人' in i[1][0]:
+                if '持证' in i[1][0] or '证人' in i[1][0]:
                     if rank[0]==0:
                         rank[0] = r
                 elif '登记日期' in i[1][0]:
@@ -100,9 +103,20 @@ class OCRJieHunZheng():
                 elif '备注' in i[1][0]:
                     if rank[3]==0:
                         rank[3] = r
+                elif '国籍' in i[1][0] or '姓名' in i[1][0]:
+                    if logic==0:
+                        logic = r
+                elif '出生日期' in i[1][0] or '性别' in i[1][0]:
+                    logic_r = r
                 elif '身份证件号' in i[1][0]:
+                    number_n += 1
+                    number_r = r
                     if rank[4]==0:
                         rank[4] = r
+            if 0<logic<max(rank[:4]):
+                continue
+            if number_n==2 and number_r<logic_r:
+                continue
             rank = [i for i in rank if i>0]
             if rank==sorted(rank) and len(rank)>1:
                 self._image = image
@@ -138,7 +152,7 @@ class OCRJieHunZheng():
                         w = w*3/len(i[1][0])
                     axis_true['marriage_name'] = [x, y-h*2, x+w*3, y+h*5.5]
                     axis_dict['marriage_date'].append(([x, y+h*3, x+w*3, y+h*6.5], 0.8))
-                    axis_dict['marriage_id'].append(([x, y+h*6, x+w*4, y+h*9.5], 0.6))
+                    axis_dict['marriage_id'].append(([x, y+h*6, x+w*4.5, y+h*9.5], 0.6))
                     continue
             if 'marriage_date' not in axis_true:
                 temp = [char for char in self._char_marriage_date if char in i[1][0]]
@@ -147,14 +161,14 @@ class OCRJieHunZheng():
                         w = w*0.3
                     axis_true['marriage_date'] = [x, y-h*2, x+w*3, y+h*5.5]
                     axis_dict['marriage_name'].append(([x, y-h*3.5, x+w*3, y-h*0.5], 0.8))
-                    axis_dict['marriage_id'].append(([x, y+h*3, x+w*4, y+h*6.5], 0.8))
+                    axis_dict['marriage_id'].append(([x, y+h*3, x+w*4.5, y+h*6.5], 0.8))
                     continue
             if 'marriage_id' not in axis_true:
                 temp = [char for char in self._char_marriage_id if char in i[1][0]]
                 if temp:
                     if len(i[1][0][i[1][0].find(temp[0])+len(temp[0]):])>1:
                         w = w*0.3
-                    axis_true['marriage_id'] = [x, y-h*2, x+w*4, y+h*6]
+                    axis_true['marriage_id'] = [x, y-h*2, x+w*4.5, y+h*6]
                     axis_dict['marriage_name'].append(([x, y-h*8, x+w*2.5, y-h*4.5], 0.6))
                     axis_dict['marriage_date'].append(([x, y-h*3.5, x+w*2.5, y-h*0.5], 0.8))
                     continue
@@ -207,7 +221,7 @@ class OCRJieHunZheng():
                 if temp:
                     if len(i[1][0][i[1][0].find(temp[0])+len(temp[0]):])>1:
                         w = w*0.3
-                    axis_true['user_number_up'] = [x+w, y-h*2, x+w*4, y+h*2]
+                    axis_true['user_number_up'] = [x+w*0.5, y-h*2, x+w*4, y+h*2]
                     axis_dict['user_name_up'].append(([None, y-h*5, None, y-h*2], 0.6))
                     axis_dict['user_country_up'].append(([None, y-h*3, None, y], 0.8))
                     axis_dict['user_name_down'].append(([None, y+h*2, None, y+h*5], 0.4))
@@ -215,7 +229,7 @@ class OCRJieHunZheng():
                     axis_dict['user_country_up'].append(([x+w*0.4, None, x+w*3, None], 100))
                     axis_dict['user_name_down'].append(([x+w*0.4, None, x+w*3, None], 100))
                     axis_dict['user_country_down'].append(([x+w*0.4, None, x+w*3, None], 100))
-                    axis_dict['user_number_down'].append(([x+w, None, x+w*4, None], 100))
+                    axis_dict['user_number_down'].append(([x+w*0.5, None, x+w*4, None], 100))
                     continue
             if 'user_name_down' not in axis_true and i[0][0][1]>self._axis_up_down:
                 temp = [char for char in self._char_user_name if char in i[1][0]]
@@ -228,9 +242,9 @@ class OCRJieHunZheng():
                     axis_dict['user_number_down'].append(([None, y+h*2, None, y+h*7], 0.4))
                     axis_dict['user_name_up'].append(([x+w, None, x+w*4.5, None], 100))
                     axis_dict['user_country_up'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_up'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_up'].append(([x+w, None, x+w*9, None], 100))
                     axis_dict['user_country_down'].append(([x+w, None, x+w*4.5, None], 100))
-                    axis_dict['user_number_down'].append(([x+w*2, None, x+w*9, None], 100))
+                    axis_dict['user_number_down'].append(([x+w, None, x+w*9, None], 100))
                     continue
             if 'user_country_down' not in axis_true and i[0][0][1]>self._axis_up_down:
                 temp = [char for char in self._char_user_country if char in i[1][0]]
@@ -266,13 +280,13 @@ class OCRJieHunZheng():
                 if temp:
                     if len(i[1][0][i[1][0].find(temp[0])+len(temp[0]):])>1:
                         w = w*0.3
-                    axis_true['user_number_down'] = [x+w, y-h*2, x+w*4, y+h*2]
+                    axis_true['user_number_down'] = [x+w*0.5, y-h*2, x+w*4, y+h*2]
                     axis_dict['user_number_up'].append(([None, y-h*8, None, y-h*5], 0.4))
                     axis_dict['user_name_down'].append(([None, y-h*5, None, y-h*2], 0.6))
                     axis_dict['user_country_down'].append(([None, y-h*3, None, y], 0.8))
                     axis_dict['user_name_up'].append(([x+w*0.4, None, x+w*3, None], 100))
                     axis_dict['user_country_up'].append(([x+w*0.4, None, x+w*3, None], 100))
-                    axis_dict['user_number_up'].append(([x+w, None, x+w*4, None], 100))
+                    axis_dict['user_number_up'].append(([x+w*0.5, None, x+w*4, None], 100))
                     axis_dict['user_name_down'].append(([x+w*0.4, None, x+w*3, None], 100))
                     axis_dict['user_country_down'].append(([x+w*0.4, None, x+w*3, None], 100))
                     continue
@@ -316,11 +330,15 @@ class OCRJieHunZheng():
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['marriage_name'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['marriage_name'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['marriage_name'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['marriage_name'][0])            
                 if h1/h>0.6 and w1/w>0.6 and sum([1 for char in i[1][0] if char in '年月日登记期0123456789'])<3:
-                    if len(i[1][0])>4 and '人' in i[1][0]:
+                    if '人' in i[1][0] and len(i[1][0][i[1][0].find('人')+1:])>1:
                         self._info['marriage_name'] = i[1][0][i[1][0].find('人')+1:]
                         self._axis['marriage_name'] = [self._axis['marriage_name'][0], y]+i[0][2]
                         self._marriage_name_prob = i[1][1]
-                    elif len(i[1][0])>1 and sum([1 for j in '持证人' if j in i[1][0]])<2:
+                    elif i[1][0].startswith('持') and sum([1 for j in '持证人' if j in i[1][0]])<2:
+                        self._info['marriage_name'] = i[1][0][i[1][0].find('持')+1:]
+                        self._axis['marriage_name'] = [self._axis['marriage_name'][0], y]+i[0][2]
+                        self._marriage_name_prob = i[1][1]
+                    elif len(la.text.sequence_preprocess(i[1][0]))>1 and sum([1 for j in '持证人' if j in i[1][0]])<2:
                         self._info['marriage_name'] = i[1][0]
                         self._axis['marriage_name'] = [x, y]+i[0][2]
                         fix_x.append(i[0][0][0])
@@ -344,9 +362,9 @@ class OCRJieHunZheng():
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['marriage_id'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['marriage_id'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['marriage_id'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['marriage_id'][0])            
                 temp = i[1][0]
-                for i,j in [('T', 'J'), ('--', '-'), (' ', ''), ('结宇', '结字'), ('.', ''), ('（', '('), ('）', ')'),
-                            ('Q', '0'), ('f', '1')]:
-                    temp = temp.replace(i, j)
+                for n,m in [('T', 'J'), ('--', '-'), (' ', ''), ('结宇', '结字'), ('.', ''), ('（', '('), ('）', ')'),
+                            ('Q', '0'), ('f', '1'), ('I', '1')]:
+                    temp = temp.replace(n, m)
                 for char in ['号', '婚证字', '备', '注']:
                     if char in temp:
                         temp = temp[temp.find(char)+len(char):]
@@ -357,8 +375,11 @@ class OCRJieHunZheng():
                         if len(temp.split('-')[0])==7 and temp[0] not in 'JL':
                             temp = 'J'+temp[1:]
                         elif len(temp.split('-')[0])==6:
-                            temp = 'J'+temp
-
+                            temp = 'J1'+temp[1:] if temp[0]=='J' else 'J'+temp
+                        elif len(temp.split('-')[0])==5:
+                            temp = ('J3' if temp[0] in ['6', '7'] else 'J1')+temp
+                        if temp[0] in 'BJL':
+                            temp = ''.join([char for char in temp if char in 'BJL-0123456789'])
                         self._info['marriage_id'] = temp
                         self._axis['marriage_id'] = [x, y]+i[0][2]
                         continue
@@ -369,7 +390,7 @@ class OCRJieHunZheng():
                 if sum([1 for char in temp if char in '国籍中性别男女出生期身份证件号'])<2:
                     h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name_up'][1])
                     w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name_up'][0])            
-                    for char in ['姓', '名']:
+                    for char in self._char_user_name+['姓', '名']:
                         if temp.startswith(char):
                             temp = temp[temp.find(char)+len(char):]
                     if h1/h>0.6 and w1/w>0.4 and len(temp)>1:
@@ -390,20 +411,6 @@ class OCRJieHunZheng():
                         self._info['user_country_up'] = temp
                         self._axis['user_country_up'] = [self._axis['user_country_up'][0], y]+i[0][2]
                         continue
-#                 temp = la.text.sequence_preprocess(i[1][0]).replace('中华人民共和国', '中国').replace('国国', '中国')
-#                 if temp[0]=='国' and len(temp)>1:
-#                     temp = temp[1:]
-#                 if sum([1 for char in temp if char in '姓名性别男女出生期身份证件号'])==0:
-#                     h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_country_up'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_country_up'][1])
-#                     w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_country_up'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_country_up'][0]) 
-#                     for char in '籍箱馨精奢':
-#                         if char in temp:
-#                             temp = temp[temp.find(char)+len(char):]
-#                     if (h1/h>0.6 and w1/w>0.4 and 10>len(temp)>1) or '中国' in temp:
-#                         if (not (len(temp) in [2,3] and temp[0] in self._char_name)) or '中国' in temp:
-#                             self._info['user_country_up'] = '中国' if '中国' in temp else temp
-#                             self._axis['user_country_up'] = [self._axis['user_country_up'][0], y]+i[0][2]
-#                             continue
             if '图片模糊' in self._info.get('user_number_up', '') and self._axis_up_down-h*5<i[0][0][1]<self._axis_up_down+h*2:
                 temp = find_shenfenzheng(i[1][0])
                 if temp:
@@ -422,45 +429,14 @@ class OCRJieHunZheng():
                             self._info['user_number_up'] = temp
                         elif [char for char in ['香港', '澳门', '台湾'] if char in temp]:
                             self._info['user_number_up'] = temp
-#                         elif len(la.text.sequence_preprocess(temp))==0:
-#                             self._info['user_number_up'] = temp
                 if '图片模糊' not in self._info['user_number_up']:
                     continue
-                    
-#                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
-#                     self._info['user_number_up'] = i[1][0][-18:].replace('x', 'X')
-#                     self._info['user_sex_up'] =  '男' if int(i[1][0][-18:][16])%2 else '女'
-#                     self._info['user_born_up'] = f"{i[1][0][-18:][6:10]}年{i[1][0][-18:][10:12]}月{i[1][0][-18:][12:14]}日"
-#                 elif sum([1 for j in i[1][0][:18] if j in '0123456789xX'])==18:
-#                     self._info['user_number_up'] = i[1][0][:18].replace('x', 'X')
-#                     self._info['user_sex_up'] =  '男' if int(i[1][0][:18][16])%2 else '女'
-#                     self._info['user_born_up'] = f"{i[1][0][:18][6:10]}年{i[1][0][:18][10:12]}月{i[1][0][:18][12:14]}日"
-#                 elif sum([1 for j in i[1][0] if j in '0123456789xX'])==17:
-#                     temp = ''.join([j for j in i[1][0] if j in '0123456789xX'])
-#                     temp = ('3' if int(temp[0])>5 else '1')+temp
-#                     if temp[6:8] in ['19', '20']:
-#                         self._info['user_number_up'] = temp.replace('x', 'X')
-#                         self._info['user_sex_up'] =  '男' if int(temp[16])%2 else '女'
-#                         self._info['user_born_up'] = f"{temp[6:10]}年{temp[10:12]}月{temp[12:14]}日"
-#                 elif sum([1 for j in i[1][0] if j in '0123456789'])==15:
-#                     temp = ''.join([j for j in i[1][0] if j in '0123456789'])
-#                     if temp[0]!=0:
-#                         self._info['user_number_up'] = temp
-#                 elif sum([1 for j in i[1][0] if j in '0123456789'])<10:
-#                     temp = i[1][0].strip()
-#                     for char in self._char_user_number:
-#                         if char in temp:
-#                             temp = temp[temp.find(char)+len(char):]
-#                     if sum([1 for j in temp if j in '字第号'])==3 and temp.endswith('号') and '结' not in temp:
-#                         self._info['user_number_up'] = temp
-#                 if '图片模糊' not in self._info['user_number_up']:
-#                     continue
             if '图片模糊' in self._info.get('user_name_down', '') and 'user_name_down' in axis_true:
                 temp = la.text.sequence_preprocess(i[1][0])
                 if sum([1 for char in temp if char in '国籍中性别男女出生期身份证件号'])<2:
                     h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_name_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_name_down'][1])
                     w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_name_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_name_down'][0])            
-                    for char in ['姓', '名']:
+                    for char in self._char_user_name+['姓', '名']:
                         if temp.startswith(char):
                             temp = temp[temp.find(char)+len(char):]
                     if h1/h>0.6 and w1/w>0.4 and len(temp)>1:
@@ -476,21 +452,6 @@ class OCRJieHunZheng():
                         self._info['user_country_down'] = temp
                         self._axis['user_country_down'] = [self._axis['user_country_down'][0], y]+i[0][2]
                         continue
-                        
-#                 temp = la.text.sequence_preprocess(i[1][0]).replace('中华人民共和国', '中国').replace('国国', '中国')
-#                 if temp[0]=='国' and len(temp)>1:
-#                     temp = temp[1:]
-#                 if sum([1 for char in temp if char in '姓名性别男女出生期身份证件号'])==0:
-#                     h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['user_country_down'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['user_country_down'][1])
-#                     w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['user_country_down'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['user_country_down'][0]) 
-#                     for char in '籍箱馨精':
-#                         if char in temp:
-#                             temp = temp[temp.find(char)+len(char):]
-#                     if (h1/h>0.6 and w1/w>0.4 and 10>len(temp)>1) or '中国' in temp:
-#                         if (not (len(temp) in [2,3] and temp[0] in self._char_name)) or '中国' in temp:
-#                             self._info['user_country_down'] = '中国' if '中国' in temp else temp
-#                             self._axis['user_country_down'] = [self._axis['user_country_down'][0], y]+i[0][2]
-#                             continue
             if '图片模糊' in self._info.get('user_number_down', '') and i[0][0][1]>self._axis_up_down:
                 temp = find_shenfenzheng(i[1][0])
                 if temp:
@@ -509,37 +470,8 @@ class OCRJieHunZheng():
                             self._info['user_number_down'] = temp
                         elif [char for char in ['香港', '澳门', '台湾'] if char in temp]:
                             self._info['user_number_down'] = temp
-#                         elif len(la.text.sequence_preprocess(temp))==0:
-#                             self._info['user_number_down'] = temp
                 if '图片模糊' not in self._info['user_number_down']:
                     continue
-                    
-#                 if sum([1 for j in i[1][0][-18:] if j in '0123456789xX'])==18:
-#                     self._info['user_number_down'] = i[1][0][-18:].replace('x', 'X')
-#                     self._info['user_sex_down'] =  '男' if int(i[1][0][-18:][16])%2 else '女'
-#                     self._info['user_born_down'] = f"{i[1][0][-18:][6:10]}年{i[1][0][-18:][10:12]}月{i[1][0][-18:][12:14]}日"
-#                 elif sum([1 for j in i[1][0][:18] if j in '0123456789xX'])==18:
-#                     self._info['user_number_down'] = i[1][0][:18].replace('x', 'X')
-#                     self._info['user_sex_down'] =  '男' if int(i[1][0][:18][16])%2 else '女'
-#                     self._info['user_born_down'] = f"{i[1][0][:18][6:10]}年{i[1][0][:18][10:12]}月{i[1][0][:18][12:14]}日"
-#                 elif sum([1 for j in i[1][0] if j in '0123456789xX'])==17:
-#                     temp = ''.join([j for j in i[1][0] if j in '0123456789xX'])
-#                     temp = ('3' if int(temp[0])>5 else '1')+temp
-#                     if temp[6:8] in ['19', '20']:
-#                         self._info['user_number_down'] = temp.replace('x', 'X')
-#                         self._info['user_sex_down'] =  '男' if int(temp[16])%2 else '女'
-#                         self._info['user_born_down'] = f"{temp[6:10]}年{temp[10:12]}月{temp[12:14]}日"
-#                 elif sum([1 for j in i[1][0] if j in '0123456789'])==15:
-#                     temp = ''.join([j for j in i[1][0] if j in '0123456789xX'])
-#                     if temp[0]!=0:
-#                         self._info['user_number_down'] = temp
-#                 elif sum([1 for j in i[1][0] if j in '0123456789'])<10:
-#                     temp = i[1][0].strip()
-#                     for char in self._char_user_number:
-#                         if char in temp:
-#                             temp = temp[temp.find(char)+len(char):]
-#                     if sum([1 for j in temp if j in '字第号'])==3 and temp.endswith('号') and '结' not in temp:
-#                         self._info['user_number_down'] = temp
 
         if '图片模糊' in self._info.get('marriage_id', '') and marriage_id:
             self._info['marriage_id'] = marriage_id
@@ -626,7 +558,7 @@ class OCRJieHunZheng():
             self._axis[i] = [int(max(0, j)) for j in self._axis[i]]
     
     def _analysis_date(self, data):
-        temp = data.replace('日月', '11月').replace('.', '-')
+        temp = data.replace('日月', '11月').replace('.', '-').replace('/', '-')
         temp = ''.join([char for char in temp if char in '0123456789年月日-'])
         if temp.find('-')>0:
             temp = temp[:temp.find('-')]+'年'+temp[temp.find('-')+1:]
@@ -720,3 +652,31 @@ class OCRJieHunZheng():
             score['time'] = time_list
         return score
 
+country_list = ['中国', '美国', '英国', '日本', '巴西', '阿根廷', '埃及', '埃塞俄比亚', '澳大利亚', '巴拉圭', '巴拿马', '白俄罗斯', '比利时', '秘鲁', '波兰', '玻利维亚', '丹麦', '多米尼加', '厄瓜多尔', '法国', '菲律宾', '哥伦比亚', '哥斯达黎加', '古巴', '海地', '荷兰', '洪都拉斯', '加拿大', '黎巴嫩', '利比里亚', '卢森堡', '墨西哥', '尼加拉瓜', '挪威', '萨尔瓦多', '沙特阿拉伯', '俄罗斯', '塞维利亚', '土耳其', '危地马拉', '委内瑞拉', '乌克兰', '乌拉圭', '希腊', '新西兰', '叙利亚', '伊拉克', '伊朗', '印度', '智利', '阿富汗', '冰岛', '泰国', '瑞典', '巴基斯坦', '也门', '缅甸', '以色列', '印度尼西亚', '阿尔巴尼亚', '奥地利', '保加利亚', '柬埔寨', '锡兰', '芬兰', '匈牙利', '爱尔兰', '意大利', '约旦', '老挝', '利比亚', '尼泊尔', '葡萄牙', '罗马尼亚', '西班牙', '摩洛哥', '苏丹', '突尼斯', '加纳', '马来西亚', '几内亚', '喀麦隆', '中非', '乍得', '刚果', '塞浦路斯', '达荷美', '加蓬', '象牙海岸', '马达加斯加', '马里', '尼日尔', '尼日利亚', '塞内加尔', '索马里', '多哥', '上沃尔特', '里塔尼亚', '蒙古', '塞拉利昂', '坦噶尼喀', '阿尔及利亚', '布隆迪', '牙买加', '卢旺达', '特立尼达和多巴哥', '乌干达', '肯尼亚', '科威特', '桑给巴尔', '马拉维', '马耳他', '赞比亚', '冈比亚', '马尔代夫群岛', '新加坡', '巴巴多斯', '博茨瓦纳', '圭亚那', '莱索托', '也门', '赤道几内亚', '毛里求斯', '斯威士兰', '斐济', '巴林', '不丹', '阿曼', '卡塔尔', '阿拉伯联合酋长国', '巴哈马', '德国', '孟加拉国', '格林纳达', '几内亚比绍', '佛得角', '科摩罗', '莫桑比克', '巴布亚新几内亚', '圣多美和普林西比', '苏里南', '安哥拉', '萨摩亚', '塞舌尔', '吉布提', '越南', '多米尼加', '所罗门群岛', '圣卢西亚', '圣文森特和格林纳丁斯', '津巴布韦', '安提瓜和巴布达', '伯利兹', '瓦努阿图', '圣克里斯托弗和尼维斯', '文莱', '列支敦士登', '纳米比亚', '朝鲜', '爱沙尼亚', '拉脱维亚', '立陶宛', '马绍尔群岛', '密克罗尼西亚', '韩国', '亚美尼亚', '阿塞拜疆', '波黑', '克罗地亚', '格鲁吉亚', '哈萨克斯坦', '吉尔吉斯斯坦', '摩尔多瓦', '圣马力诺', '斯洛文尼亚', '塔吉克斯坦', '土库曼斯坦', '乌兹别克斯坦', '安道尔', '捷克', '厄立特里亚', '摩纳哥', '斯洛伐克', '马其顿', '帕劳', '基里巴斯', '瑙鲁', '汤加', '图瓦卢', '瑞士', '东帝汶', '黑山共和国', '南苏丹']
+
+def find_country(data):
+    t = data.replace('中华人民共和国', '中国')
+    for i in country_list:
+        if i in t:
+            return i
+    return ''
+
+def find_shenfenzheng(data):
+    temp = data.replace('x', 'X')
+    year = time.localtime(time.time()).tm_year
+    if sum([1 for i in temp if i in '0123456789X'])<15:
+        return []
+    for i in range(0,len(temp)-14):
+        t = ''.join([j for j in temp[i:i+18] if j in '0123456789X'])
+        if 'X' in t:
+            if not (t.count('X')==1 and t.endswith('X')):
+                continue
+        if len(t)==17:
+            t = ('3' if int(t[0])>5 else '1')+t
+        if len(t)==18:
+            if 1900<int(t[6:10])<year and int(t[10:12])<13 and int(t[12:14])<32:
+                return [t, '男' if int(t[16])%2 else '女', f"{t[6:10]}年{t[10:12]}月{t[12:14]}日"]
+        elif len(t)==15 and 'X' not in t:
+            if int(t[8:10])<13 and int(t[10:12])<32:
+                return [t, '男' if int(t[-1])%2 else '女', f"19{t[6:8]}年{t[8:10]}月{t[10:12]}日"]
+    return []
