@@ -3,6 +3,8 @@ import time
 import paddleocr
 import linora as la
 
+__all__ = ['OCRLvMaHeYan']
+
 
 class OCRLvMaHeYan():
     def __init__(self, model=True, name_list=None):
@@ -64,29 +66,31 @@ class OCRLvMaHeYan():
             return {'data':self._info, 'angle':self._angle, 'error':self._error}
         
     def _fit_direction(self, model):
-        for angle in [0, 90, 270, 180]:
+        for angle, gray in zip([0, 0, 90, 90, 270, 270, 180, 180], [0, 1,0, 1,0, 1,0, 1]):
             image = la.image.rotate(self._image, angle, expand=True)
-            self._result = model.ocr(la.image.image_to_array(image), cls=False)
-            rank = [0,0,0,0,0,0]
+            if gray==1:
+                image1 = la.image.image_to_array(la.image.color_convert(image, la.image.ColorMode.grayscale))[:,:,0]
+            else:
+                image1 = la.image.image_to_array(image)
+            self._result = model.ocr(image1, cls=False)
+#             print(angle, self._result, '\n')
+            rank = [0,0,0,0,0]
             for r, i in enumerate(self._result[0], start=1):
-                if '核验编号' in i[1][0]:
+                if '核验编号' in i[1][0] or '核验用途' in i[1][0]:
                     if rank[0]==0:
                         rank[0] = r
-                elif '核验用途' in i[1][0]:
+                elif '申请时间' in i[1][0]:
                     if rank[1]==0:
                         rank[1] = r
-                elif '申请时间' in i[1][0]:
+                elif '有效时间' in i[1][0]:
                     if rank[2]==0:
                         rank[2] = r
-                elif '有效时间' in i[1][0]:
+                elif '家庭描述' in i[1][0]:
                     if rank[3]==0:
                         rank[3] = r
-                elif '家庭类型' in i[1][0]:
+                elif '家庭申报' in i[1][0] or '房产数量' in i[1][0]:
                     if rank[4]==0:
                         rank[4] = r
-                elif '家庭描述' in i[1][0]:
-                    if rank[5]==0:
-                        rank[5] = r
             rank = [i for i in rank if i>0]
             if rank==sorted(rank) and len(rank)>1:
                 self._image = image
@@ -105,17 +109,19 @@ class OCRLvMaHeYan():
             w = (i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
-            if 'check_id' not in axis_true and i[1][0] in ['核验编号', '核验编号：']:
-                axis_true['check_id'] = [x+w*1.2, y-h*0.25, x+w*5, y+h*1.25]
+            if 'check_id' not in axis_true and [char for char in ['核验编号'] if char in i[1][0]]:
+                axis_true['check_id'] = [x+w*1.2, y-h*0.25, x+w*6, y+h*1.25]
                 continue
-            if 'check_effective_time' not in axis_true and i[1][0] in ['有效时间', '有效时间：']:
-                axis_true['check_effective_time'] = [x+w*1.2, y-h*0.25, x+w*5, y+h*1.25]
+            if 'check_effective_time' not in axis_true and [char for char in ['效时间'] if char in i[1][0]]:
+                if len(i[1][0])>5:
+                    w = w*max(5/len(i[1][0]), 0.25)
+                axis_true['check_effective_time'] = [x+w*1.2, y-h*0.25, x+w*6, y+h*1.25]
                 continue
-            if 'check_purpose' not in axis_true and i[1][0] in ['核验用途', '核验用途：']:
-                axis_true['check_purpose'] = [x+w*1.2, y-h*0.25, x+w*5, y+h*1.25]
+            if 'check_purpose' not in axis_true and [char for char in ['验用途', '验用送'] if char in i[1][0]]:
+                axis_true['check_purpose'] = [x+w*1.2, y-h*0.25, x+w*6, y+h*1.25]
                 continue
-            if 'check_serial_number' not in axis_true and i[1][0] in ['连环单号', '连环单号：']:
-                axis_true['check_serial_number'] = [x+w*1.2, y-h*0.25, x+w*4, y+h*1.25]
+            if 'check_serial_number' not in axis_true and [char for char in ['连环单号'] if char in i[1][0]]:
+                axis_true['check_serial_number'] = [x+w*1.2, y-h*0.25, x+w*5, y+h*1.25]
                 continue
 
         for i in self._keys:
@@ -159,16 +165,23 @@ class OCRLvMaHeYan():
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['check_effective_time'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['check_effective_time'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['check_effective_time'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['check_effective_time'][0])            
                 if h1/h>0.6 and w1/w>0.6:
-                    temp = i[1][0].replace(' ', '')
-                    if len(temp)==sum([1 for char in temp if char in '0123456789至-——']):
-                        self._info['check_effective_time'] = temp
-                        self._axis['check_effective_time'] = [x, y]+i[0][2]
-                        continue
+                    temp = i[1][0].replace(' ', '').replace('——', '至').replace('—', '至')
+                    if len(temp)==sum([1 for char in temp if char in '0123456789至-']):
+                        if len(temp)==20 and '至' not in temp:
+                            temp = temp[:10]+'至'+temp[10:]
+                        if temp[10]=='-':
+                            temp = temp[:10]+'至'+temp[10:]
+                        temp = temp.replace('-', '')
+                        if temp.count('至')==1 and len(temp)==17 and temp.find('至')==8:
+                            temp = f"{temp[:4]}-{temp[4:6]}-{temp[6:8]}至{temp[9:13]}-{temp[13:15]}-{temp[15:17]}"
+                            self._info['check_effective_time'] = temp
+                            self._axis['check_effective_time'] = [x, y]+i[0][2]
+                            continue
             if '图片模糊' in self._info.get('check_purpose', '') and 'check_purpose' in axis_true:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['check_purpose'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['check_purpose'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['check_purpose'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['check_purpose'][0])            
                 if h1/h>0.6 and w1/w>0.6:
-                    self._info['check_purpose'] = i[1][0]
+                    self._info['check_purpose'] = '购房' if '型' in i[1][0] else i[1][0]
                     self._axis['check_purpose'] = [x, y]+i[0][2]
                     continue
             if '图片模糊' in self._info.get('check_serial_number', '') and 'check_serial_number' in axis_true:
@@ -179,7 +192,7 @@ class OCRLvMaHeYan():
                     self._axis['check_serial_number'] = [x, y]+i[0][2]
                     continue
             if '图片模糊' in self._info.get('check_purpose', '') and '核验' in i[1][0]:
-                for char in ['初步核验通过', '核验通过']:
+                for char in ['初步核验通过', '核验通过', '初步核验未通过', '待核验未出结果']:
                     if char in i[1][0]:
                         self._info['check_status'] = char
                         self._axis['check_status'] = [x, y]+i[0][2]
