@@ -23,12 +23,14 @@ class OCRYinHangKa():
                 if i not in self._keys:
                     raise ValueError(f'Variable name `{i}`  does not conform to the specification.')
         self._name_list = name_list
-        self._char_direction = ['中国', '银行', '银联', '借记', '记卡', '信用', '章程', '热线', '签名', '持卡人',
-                                '客户', '服务', '使用', '客服', '一卡通', '办理', '电话', '网上', '出租',
-                                '转借', '转让', '结算', 'ATM', 'Bank', 'China', 'Union', 
-                                '交通', '工商', '招商', '建设', '农业', '农商', '光大', '邮政', '储蓄', '浦发', '平安',
-                               '广发', '中信', '622']
-        self._char_bank_name = [
+        self._char_direction = [
+            '中国', '银行', '银联', '借记', '记卡', '信用', '储蓄', '章程', '热线', '签名', '持卡人', '客户', '服务', 
+            '使用', '客服', '一卡通', '办理', '电话', '网上', '出租', '转借', '转让', '结算', '闪付', 
+            'ATM', 'Bank', 'China', 'Union', 'Pay', 'Quick', 'Pass', 'THRU', 'VALID', 'MONTH', 'YEAR',
+            '交通', '工商', '招商', '建设', '农业', '农商', '光大', '邮政', '浦发', '平安', '广发', '中信', '民生',
+            '华夏', '兴业',
+            '622']
+        self._char_bank_name = [ 
             '中国银行', '中国工商银行', '中国农业银行', '中国建设银行', '交通银行', '中国邮政储蓄银行', 
             
             '中信银行', '中国光大银行', '招商银行', '浦发银行', '民生银行', '华夏银行', '平安银行', 
@@ -149,7 +151,7 @@ class OCRYinHangKa():
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
             if 'bank_number' not in axis_true and len(i[1][0])>3:
-                temp1 = i[1][0].replace('b', '6').replace(' ', '').replace('-', '')
+                temp1 = i[1][0].replace('b', '6').replace(' ', '').replace('-', '').replace('.', '')
                 temp = ''.join([char for char in temp1 if char in '0123456789'])
                 if len(temp)==len(temp1) and 20>len(temp):
                     bank_number.append(([0, y-h*0.2, self._image.width, y+h*1.2], len(temp)))
@@ -186,21 +188,6 @@ class OCRYinHangKa():
             w = max((i[0][1][0]+i[0][2][0]-i[0][0][0]-i[0][3][0])/2, 1)
             x = min(i[0][0][0], i[0][3][0])
             y = min(i[0][0][1], i[0][1][1])
-#             if '图片模糊' in self._info.get('bank_name', ''):
-#                 if '银' in i[1][0] or '行' in i[1][0]:
-#                     score = [(char, fuzz.partial_ratio(char, i[1][0])) for char in self._char_bank_name]
-# #                     print(sorted(score, key=lambda x:x[1]))
-#                     score = sorted(score, key=lambda x:x[1])[-1]
-#                     if score[1]>75:
-#                         self._info['bank_name'] = score[0]
-#                         continue
-#             if '图片模糊' in self._info.get('bank_type', ''):
-#                 if '借记' in i[1][0]:
-#                     self._info['bank_type'] = '储蓄卡'
-#                     continue
-#                 elif '信用' in i[1][0] or '用卡' in i[1][0]:
-#                     self._info['bank_type'] = '信用卡'
-#                     continue
             if '图片模糊' in self._info.get('bank_number', '') and 'bank_number' in self._axis:
                 h1 = min(max(i[0][3][1], i[0][2][1]), axis_true['bank_number'][3])-max(min(i[0][0][1], i[0][1][1]), axis_true['bank_number'][1])
                 w1 = min(max(i[0][1][0], i[0][2][0]), axis_true['bank_number'][2])-max(min(i[0][0][0], i[0][3][0]), axis_true['bank_number'][0])            
@@ -213,12 +200,12 @@ class OCRYinHangKa():
                         elif len(temp)==19 and temp[0] not in '469':
                             temp = '6'+temp[1:]
                     bank_number.append((temp, [x,y]+i[0][2]))
-            
+#         print(bank_number)
         if bank_number:
             if len(bank_number)==1 and len(bank_number[-1][0]) in [16,17,19]:
                 self._info['bank_number'] = bank_number[-1][0]
                 self._axis['bank_number'] = bank_number[-1][1]
-            elif [i for i in bank_number if len(i) in [16,17,19]]:
+            elif [i for i in bank_number if len(i[0]) in [16,17,19]]:
                 self._info['bank_number'] = [i for i,j in bank_number if len(i) in [16,17,19]][-1]
                 self._axis['bank_number'] = [j for i,j in bank_number if len(i) in [16,17,19]][-1]
             else:
