@@ -24,7 +24,7 @@ class OCRPOSPiao():
                 if i not in self._keys:
                     raise ValueError(f'Variable name `{i}`  does not conform to the specification.')
         self._name_list = name_list
-        self._char_merchant_name = ['商户名称', '商广名称']
+        self._char_merchant_name = ['商户名', '商广名']
         self._char_merchant_id = ['商户编号', '商广编号']
         self._char_terminal_id = ['终端编号', '冬端编号']
         self._char_trade_date = ['交易日期', '日期时间', '日期/时间']
@@ -59,7 +59,7 @@ class OCRPOSPiao():
                     elif aug==1:
                         image = la.image.image_to_array(la.image.color_convert(image, la.image.ColorMode.grayscale))[:,:,0]
                     elif aug==2:
-                        image = la.image.image_to_array(la.image.enhance_brightness(image, 0.85))
+                        image = la.image.image_to_array(la.image.enhance_brightness(image, 0.65))
                     t = (self._model if model is None else model).ocr(image, cls=False)
                     if t[0]:
                         for j in t[0]:
@@ -80,11 +80,13 @@ class OCRPOSPiao():
             image = la.image.rotate(self._image, angle, expand=True)
             self._result = model.ocr(la.image.image_to_array(image), cls=False)
 #             print(angle, result, '\n')
-            if [1 for i in self._result[0] if len(i[1][0])>4 and (i[0][1][0]-i[0][0][0])<(i[0][3][1]-i[0][0][1])]:
-                continue
+#             t = [1 if len(i[1][0])>4 and (i[0][1][0]-i[0][0][0])<(i[0][3][1]-i[0][0][1]) else 0 for i in self._result[0]]
+#             print(sum(t)/len(t))
+#             if sum(t)/len(t)>0.04:
+#                 continue
             
 #             print(angle, result, '\n')
-            rank = [0,0,0,0,0,0]
+            rank = [0,0,0,0,0]
             for r, i in enumerate(self._result[0], start=1):
                 if [char for char in self._char_merchant_name if char in i[1][0]] and sum(rank)==0:
                     rank[0] = r
@@ -96,9 +98,9 @@ class OCRPOSPiao():
                     rank[3] = r
                 elif [1 for char in ['凭证号', '授权码', '批次号', '参考号', '交易日期'] if char in i[1][0]] and sum(rank[4:])==0:
                     rank[4] = r
-                elif '持卡人签名' in i[1][0] and sum(rank[5:])==0:
-                    rank[5] = r
-            print(angle, rank)
+#                 elif '持卡人签名' in i[1][0] and sum(rank[5:])==0:
+#                     rank[5] = r
+#             print(angle, rank)
             rank = [i for i in rank if i>0]
             if rank==sorted(rank) and len(rank)>1:
                 self._image = image
@@ -198,11 +200,11 @@ class OCRPOSPiao():
                     if '图片模糊' in self._info[g].get('issuance_bank', ''):
                         if sum([1 for char in ['发','卡','行','ISSUER'] if char in temp])>1:
                             t = temp.lower().split('发卡行')[-1].split('issuer')[-1].replace('(', '').replace(')', '')
+                            index = [char for r,char in enumerate(['收单', '单行', 'ACQ']) if char in t]
+                            t = t[:t.find(index[0])] if index else t
                             t = t[t.find(':')+1:]
-                            index = [r for r,char in enumerate(['收单', '单行', 'ACQ']) if char in t]
-                            t = t[:min(index)] if index else t
                             if len(t)>2:
-                                self._info[g]['issuance_bank'] = t
+                                self._info[g]['issuance_bank'] = t.replace(' ', '')
                     if '图片模糊' in self._info[g].get('acquiring_bank', ''):
                         if sum([1 for char in ['收','单','行','ACQ'] if char in temp])>1:
                             t = temp.lower().split('收单行')[-1].split('acq')[-1].replace('(', '').replace(')', '')
@@ -365,7 +367,7 @@ class OCRPOSPiao():
     def _analysis_concat(self):
         info = self._info.copy()
         if len(self._info)>1:
-            for key in ['trade_id', 'trade_date', 'trade_amount']:
+            for key in ['reference_id', 'trade_date', 'trade_amount', 'trade_id']:
                 temp = set([info[g][key] for g in info if info[g].get(key, '') not in ['图片模糊', '']])
 #                 print(temp)
                 for i in temp:
@@ -377,6 +379,9 @@ class OCRPOSPiao():
                     info.append(t)
                     info = {f'group{r}':j for r,j in enumerate(info)}
 #                     print(info,'\n')
+        t  = ['trade_id', 'reference_id', 'voucher_id', 'trade_amount']
+        g = [(g,sum([float(info[g][i][1:4]) if '图片模糊' not in info[g][i] else 0 for i in t])) for g in info]
+        info = {i[0]:info[i[0]] for i in sorted(g, key=lambda x:x[1])}
         return info
                 
     def draw_mask(self):
@@ -388,4 +393,60 @@ class OCRPOSPiao():
         except:
             pass
         return image
-                
+    
+    def metrics(self, data, image_root, name_list=None, debug=False, test_sample_nums=None):
+        if la.gfile.isfile(data):
+            with open(data) as f:
+                data = f.read().strip().split('\n')
+            data = [eval(i) for i in data]
+        if name_list is None:
+            name_list = ['merchant_name', 'merchant_id', 'terminal_id', 'issuance_bank', 'acquiring_bank',
+                         'voucher_id', 'authorization_id', 'batch_id', 'reference_id', 'trace_id', 'invoice_id',
+                         'trade_type', 'trade_date', 'trade_id', 'trade_amount']
+        
+        score_a = {i:0 for i in name_list}
+        score_b = {i:0 for i in name_list}
+        time_list = []
+        error_list = []
+        nums = len(data) if test_sample_nums is None else test_sample_nums
+        for i in data[:nums]:
+            error = {'image':i.pop('image')}
+            try:
+                time_start = time.time()
+                t = self.predict(la.gfile.path_join(image_root, error['image']))['data']
+                time_list.append({'image':error['image'], 'time':time.time()-time_start})
+                if isinstance(t, dict):
+                    if len(i)==len(t):
+                        for g in i:
+                            for j in name_list:
+                                if j in i[g]:
+                                    if j in t[g]:
+                                        if t[g][j]==i[g][j]:
+                                            score_a[j] +=1
+                                        else:
+                                            error[j] = {'pred':t[g][j], 'label':i[g][j], 'group':g}
+                    else:
+                        error['error'] = 'group count error'
+                else:
+                    error['error'] = t
+            except:
+                error['error'] = 'program error'
+            for j in name_list:
+                for g in i:
+                    if j in i[g]:
+                        score_b[j] += 1
+            if len(error)>1:
+                error_list.append(error)
+
+        score = {f'{i}_acc':score_a[i]/score_b[i] for i in score_a if score_b[i]>0}
+        score['totalmean_acc'] = sum([score_a[i] for i in score_a])/max(sum([score_b[i] for i in score_b]), 0.0000001)
+        score = {i:round(score[i], 4) for i in score}
+        score['test_sample_nums'] = nums
+        temp = [i['time'] for i in time_list]
+        score['test_sample_time'] = {'min':f'{min(temp):.3}s', 'mean':f'{sum(temp)/len(temp):.3}s', 'max':f'{max(temp):.3}s'}
+        if debug:
+            score['detailed'] = {i:f'{score_a[i]}/{score_b[i]}' for i in score_a}
+            score['error'] = error_list
+            score['time'] = time_list
+        return score
+
